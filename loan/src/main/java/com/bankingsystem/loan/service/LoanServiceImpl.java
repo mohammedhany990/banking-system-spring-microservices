@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.bankingsystem.loan.client.AccountClient;
@@ -13,6 +14,7 @@ import com.bankingsystem.loan.dto.CustomerDto;
 import com.bankingsystem.loan.dto.LoanRepaymentDto;
 import com.bankingsystem.loan.dto.LoanRequestDto;
 import com.bankingsystem.loan.dto.LoanResponseDto;
+import com.bankingsystem.loan.dto.RepaymentScheduleDto;
 import com.bankingsystem.loan.entity.Loan;
 import com.bankingsystem.loan.entity.LoanRepayment;
 import com.bankingsystem.loan.entity.LoanStatus;
@@ -194,6 +196,61 @@ public class LoanServiceImpl implements LoanService {
         repayment.setIsPaid(true);
         LoanRepayment updatedRepayment = loanRepaymentRepo.save(repayment);
         return loanMapper.loanRepaymentToLoanRepaymentDto(updatedRepayment);
+    }
+
+
+
+    @Override
+    public List<LoanResponseDto> getAllLoans() {
+        List<Loan> loans = loanRepo.findAll();
+        if (loans.isEmpty()) {
+            throw new LoanValidationException("No loans found");
+        }
+        return loanMapper.loansToLoanResponseDtos(loans);
+    }
+
+    @Override
+    public LoanResponseDto cancelLoan(Long loanId) {
+        Loan loan = loanRepo.findById(loanId)
+                .orElseThrow(() -> new LoanValidationException("Loan not found with id: " + loanId));
+
+        if (loan.getStatus() != LoanStatus.PENDING && loan.getStatus() != LoanStatus.APPROVED) {
+            throw new LoanValidationException("Loan with id " + loanId + " cannot be cancelled in its current state");
+        }
+
+        loan.setStatus(LoanStatus.CANCELLED);
+        Loan updatedLoan = loanRepo.save(loan);
+
+        return loanMapper.loanToLoanResponseDto(updatedLoan);
+    }
+
+    @Override
+    public List<RepaymentScheduleDto> getRepaymentSchedule(Long loanId) {
+        Loan loan = loanRepo.findById(loanId)
+                .orElseThrow(() -> new LoanValidationException("Loan not found with id: " + loanId));
+
+        List<LoanRepayment> repayments = loanRepaymentRepo.findByLoanId(loanId);
+        if (repayments.isEmpty()) {
+            throw new LoanValidationException("No repayments found for loan with id: " + loanId);
+        }
+
+        return loanMapper.loanRepaymentsToRepaymentScheduleDtos(repayments);
+    }
+
+    @Override
+    public List<LoanResponseDto> getLoansByStatus(String status) {
+        LoanStatus loanStatus;
+        try {
+            loanStatus = LoanStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new LoanValidationException("Invalid loan status: " + status);
+        }
+        List<Loan> loans = loanRepo.findByStatus(loanStatus);
+
+        if (loans.isEmpty()) {
+            throw new LoanValidationException("No loans found with status: " + status);
+        }
+        return loanMapper.loansToLoanResponseDtos(loans);
     }
 
 }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import com.bankingsystem.loan.dto.LoanRepaymentDto;
 import com.bankingsystem.loan.dto.LoanRequestDto;
 import com.bankingsystem.loan.dto.LoanResponseDto;
+import com.bankingsystem.loan.dto.RepaymentScheduleDto;
 import com.bankingsystem.loan.service.LoanService;
 
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,12 @@ public class LoanController {
 
     private final LoanService loanService;
 
+    @GetMapping
+    public ResponseEntity<List<LoanResponseDto>> getAllLoans() {
+        List<LoanResponseDto> response = loanService.getAllLoans();
+        return ResponseEntity.ok(response);
+    }
+    
     @PostMapping("/apply")
     public ResponseEntity<LoanResponseDto> applyLoan(@RequestBody LoanRequestDto loanRequest) {
         LoanResponseDto response = loanService.applyLoan(loanRequest);
@@ -73,4 +80,22 @@ public class LoanController {
         LoanRepaymentDto response = loanService.markRepaymentAsPaid(repaymentId);
         return ResponseEntity.ok(response);
     }
+    @GetMapping("/{loanId}/repayment-schedule")
+    public ResponseEntity<List<RepaymentScheduleDto>> getRepaymentSchedule(@PathVariable Long loanId) {
+        List<RepaymentScheduleDto> response = loanService.getRepaymentSchedule(loanId);
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/status/{status}")
+    public ResponseEntity<List<LoanResponseDto>> getLoansByStatus(@PathVariable String status) {
+       
+        List<LoanResponseDto> response = loanService.getLoansByStatus(status);
+        return ResponseEntity.ok(response);
+    }
+    
+    @PutMapping("/{loanId}/cancel")
+    public ResponseEntity<LoanResponseDto> cancelLoan(@PathVariable Long loanId) {
+        LoanResponseDto response = loanService.cancelLoan(loanId);
+        return ResponseEntity.ok(response);
+    }
+   
 }

@@ -26,8 +26,18 @@ public class LoanRepayment {
     private Long id;
 
     private Long loanId;
+
     private LocalDate dueDate;
+
     private BigDecimal amount;
+
     private Boolean isPaid;
+
+    private LocalDate paymentDate;
+
+    private BigDecimal amountPaid;
+
+    private BigDecimal lateFee;
+
     private LocalDate createdAt;
 }
