@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 @ControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
     private static final ResponseEntity<ApiResponse<?>> METHOD_NOT_ALLOWED_RESPONSE = new ResponseEntity<>(
             new ApiResponse<>(false, "HTTP method not allowed for this endpoint.", null),
             HttpStatus.METHOD_NOT_ALLOWED);
@@ -34,21 +35,17 @@ public class GlobalExceptionHandler {
             HttpStatus.INTERNAL_SERVER_ERROR);
 
     @ExceptionHandler(CustomerNotFoundException.class)
-    public ResponseEntity<ApiResponse<String>> handleTransactionNotFound(CustomerNotFoundException ex) {
+    public ResponseEntity<ApiResponse<String>> handleCustomerNotFound(CustomerNotFoundException ex) {
         ApiResponse<String> response = ApiResponse.<String>builder()
                 .success(false)
                 .message(ex.getMessage())
-                .data(null)
                 .build();
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
-    // 400 Bad Request - Invalid Transaction
     @ExceptionHandler(InvalidTransactionException.class)
     public ResponseEntity<ApiResponse<Void>> handleInvalidTransaction(InvalidTransactionException ex) {
-        if (log.isWarnEnabled()) {
-            log.warn("Invalid transaction: {}", ex.getMessage());
-        }
+        log.warn("Invalid transaction: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.<Void>builder()
                         .success(false)
@@ -56,16 +53,12 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
-    // 405 Method Not Allowed (using cached response)
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<?>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
-        if (log.isWarnEnabled()) {
-            log.warn("Method not allowed: {}", ex.getMethod());
-        }
+        log.warn("Method not allowed: {}", ex.getMethod());
         return METHOD_NOT_ALLOWED_RESPONSE;
     }
 
-    // 400 Malformed JSON - detailed error handling
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<?>> handleMalformedJson(HttpMessageNotReadableException ex) {
         String message = "Invalid JSON request format";
@@ -80,15 +73,10 @@ public class GlobalExceptionHandler {
                     .filter(Objects::nonNull)
                     .collect(Collectors.joining("."));
 
-            String targetType = invalidFormatException.getTargetType().getSimpleName();
-            String receivedValue = String.valueOf(invalidFormatException.getValue());
-
-            message = "Invalid data format in request";
             details.put("field", fieldPath);
-            details.put("expectedType", targetType);
-            details.put("receivedValue", receivedValue);
-            details.put("message",
-                    "Field '" + fieldPath + "' expects " + targetType + " but received '" + receivedValue + "'");
+            details.put("expectedType", invalidFormatException.getTargetType().getSimpleName());
+            details.put("receivedValue", String.valueOf(invalidFormatException.getValue()));
+            message = "Invalid data format in request";
         } else if (cause instanceof MismatchedInputException mismatchedInputException) {
             if (mismatchedInputException.getPath() != null && !mismatchedInputException.getPath().isEmpty()) {
                 String fieldPath = mismatchedInputException.getPath()
@@ -97,9 +85,8 @@ public class GlobalExceptionHandler {
                         .filter(Objects::nonNull)
                         .collect(Collectors.joining("."));
 
-                message = "Invalid request structure";
                 details.put("field", fieldPath);
-                details.put("message", mismatchedInputException.getOriginalMessage());
+                message = "Invalid request structure";
             } else {
                 message = mismatchedInputException.getOriginalMessage();
             }
@@ -107,19 +94,10 @@ public class GlobalExceptionHandler {
             details.put("message", "The request contains malformed JSON syntax");
         }
 
-        if (log.isWarnEnabled()) {
-            log.warn("Invalid JSON request: {} - Details: {}", message, details);
-        }
+        log.warn("Invalid JSON request: {} - Details: {}", message, details);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiResponse<>(false, message, details.isEmpty() ? null : details));
-    }
-
-    // 500 Internal Server Error - fallback handler
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<?>> handleAllUnhandledExceptions(Exception ex) {
-        log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
-        return INTERNAL_ERROR_RESPONSE;
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -131,7 +109,7 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.toMap(
                         FieldError::getField,
                         FieldError::getDefaultMessage,
-                        (existing, replacement) -> existing));
+                        (existing, replacement) -> existing)); // keep the first error message
 
         ApiResponse<Map<String, String>> response = ApiResponse.<Map<String, String>>builder()
                 .success(false)
@@ -142,4 +120,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<?>> handleAllUnhandledExceptions(Exception ex) {
+        log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
+        return INTERNAL_ERROR_RESPONSE;
+    }
 }

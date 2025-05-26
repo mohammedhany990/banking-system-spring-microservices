@@ -18,4 +18,7 @@ public class CustomerDto {
     private String phone;
     private String address;
     private boolean active;
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
 }

@@ -1,6 +1,5 @@
 package com.bankingsystem.transaction.controller;
 
-
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -8,137 +7,78 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.bankingsystem.transaction.dto.DepositRequest;
+import com.bankingsystem.transaction.dto.TransactionDateRangeRequest;
 import com.bankingsystem.transaction.dto.TransactionDto;
+import com.bankingsystem.transaction.dto.TransactionResponse;
+import com.bankingsystem.transaction.dto.TransferRequest;
+import com.bankingsystem.transaction.dto.WithdrawRequest;
 import com.bankingsystem.transaction.helper.ApiResponse;
 import com.bankingsystem.transaction.service.TransactionService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/v1/transactions")
 @RequiredArgsConstructor
+@Slf4j
 public class TransactionController {
 
     private final TransactionService transactionService;
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<TransactionDto>> createTransaction(@RequestBody TransactionDto transactionDto) {
-        TransactionDto created = transactionService.createTransaction(transactionDto);
-
-        ApiResponse<TransactionDto> response = ApiResponse.<TransactionDto>builder()
+    @PostMapping("/deposit")
+    public ResponseEntity<ApiResponse<TransactionResponse>> deposit(@RequestBody DepositRequest depositRequest) {
+        TransactionResponse response = transactionService.deposit(depositRequest);
+        ApiResponse<TransactionResponse> apiResponse = ApiResponse.<TransactionResponse>builder()
                 .success(true)
-                .message("Transaction created successfully")
-                .data(created)
+                .message("Deposit successful")
+                .data(response)
                 .build();
+        return ResponseEntity.ok(apiResponse);
 
-        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<TransactionDto>> getTransactionById(@PathVariable Long id) {
-        TransactionDto dto = transactionService.getTransactionById(id);
-
-        ApiResponse<TransactionDto> response = ApiResponse.<TransactionDto>builder()
+    @PostMapping("/withdraw")
+    public ResponseEntity<ApiResponse<TransactionResponse>> withdraw(@RequestBody WithdrawRequest withdrawRequest) {
+        TransactionResponse response = transactionService.withdraw(withdrawRequest);
+        ApiResponse<TransactionResponse> apiResponse = ApiResponse.<TransactionResponse>builder()
                 .success(true)
-                .message("Transaction fetched successfully")
-                .data(dto)
+                .message("Deposit successful")
+                .data(response)
                 .build();
+        return ResponseEntity.ok(apiResponse);
 
-        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/account/{accountId}")
-    public ResponseEntity<ApiResponse<List<TransactionDto>>> getTransactionsByAccountId(@PathVariable Long accountId) {
-        List<TransactionDto> transactions = transactionService.getTransactionsByAccountId(accountId);
+    @PostMapping("/transfer")
+    public ResponseEntity<ApiResponse<TransactionResponse>> transfer(
+            @Valid @RequestBody TransferRequest transferRequest) {
 
-        ApiResponse<List<TransactionDto>> response = ApiResponse.<List<TransactionDto>>builder()
+        TransactionResponse response = transactionService.transfer(transferRequest);
+        ApiResponse<TransactionResponse> apiResponse = ApiResponse.<TransactionResponse>builder()
+                .success(true)
+                .message("Transfer successful")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PostMapping("/transactions-between")
+    public ResponseEntity<ApiResponse<List<TransactionResponse>>> getTransactionsBetweenDates(
+            @RequestBody TransactionDateRangeRequest dateRangeRequest) {
+
+        List<TransactionResponse> responseList = transactionService.getTransactionsBetweenDates(dateRangeRequest);
+                
+
+        ApiResponse<List<TransactionResponse>> apiResponse = ApiResponse.<List<TransactionResponse>>builder()
                 .success(true)
                 .message("Transactions fetched successfully")
-                .data(transactions)
+                .data(responseList)
                 .build();
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(apiResponse);
     }
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<TransactionDto>>> getAllTransactions() {
-        List<TransactionDto> transactions = transactionService.getAllTransactions();
-
-        ApiResponse<List<TransactionDto>> response = ApiResponse.<List<TransactionDto>>builder()
-                .success(true)
-                .message("All transactions fetched successfully")
-                .data(transactions)
-                .build();
-
-        return ResponseEntity.ok(response);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<TransactionDto>> updateTransaction(@PathVariable Long id,
-                                                                         @RequestBody TransactionDto transactionDto) {
-        TransactionDto updated = transactionService.updateTransaction(id, transactionDto);
-
-        ApiResponse<TransactionDto> response = ApiResponse.<TransactionDto>builder()
-                .success(true)
-                .message("Transaction updated successfully")
-                .data(updated)
-                .build();
-
-        return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteTransaction(@PathVariable Long id) {
-        transactionService.deleteTransaction(id);
-
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(true)
-                .message("Transaction deleted successfully")
-                .data(null)
-                .build();
-
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/status/{status}")
-    public ResponseEntity<ApiResponse<List<TransactionDto>>> getTransactionsByStatus(@PathVariable String status) {
-        List<TransactionDto> transactions = transactionService.getTransactionsByStatus(status);
-
-        ApiResponse<List<TransactionDto>> response = ApiResponse.<List<TransactionDto>>builder()
-                .success(true)
-                .message("Transactions filtered by status fetched successfully")
-                .data(transactions)
-                .build();
-
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/type/{type}")
-    public ResponseEntity<ApiResponse<List<TransactionDto>>> getTransactionsByType(@PathVariable String type) {
-        List<TransactionDto> transactions = transactionService.getTransactionsByType(type);
-
-        ApiResponse<List<TransactionDto>> response = ApiResponse.<List<TransactionDto>>builder()
-                .success(true)
-                .message("Transactions filtered by type fetched successfully")
-                .data(transactions)
-                .build();
-
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/dates")
-    public ResponseEntity<ApiResponse<List<TransactionDto>>> getTransactionsBetweenDates(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
-
-        List<TransactionDto> transactions = transactionService.getTransactionsBetweenDates(from, to);
-
-        ApiResponse<List<TransactionDto>> response = ApiResponse.<List<TransactionDto>>builder()
-                .success(true)
-                .message("Transactions between dates fetched successfully")
-                .data(transactions)
-                .build();
-
-        return ResponseEntity.ok(response);
-    }
 }

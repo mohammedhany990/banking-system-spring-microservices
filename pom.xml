@@ -17,9 +17,13 @@
 
 	<modules>
 		<module>customer</module>
-		<module>fraud</module>
 		<module>bankaccount</module>
 		<module>transaction</module>
+		<module>user</module>
+		<module>loan</module>
+		<module>card</module>
+		<module>notification</module>
+		<module>apigateway</module>
 	</modules>
 
 
@@ -113,11 +117,19 @@
 			<artifactId>jakarta.validation-api</artifactId>
 		</dependency>
 
-		<!-- <dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency> -->
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>1.5.5.Final</version>
+		</dependency>
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct-processor</artifactId>
+			<version>1.5.5.Final</version>
+			<scope>provided</scope>
+		</dependency>
+
+	
 
 
 

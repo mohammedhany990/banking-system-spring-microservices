@@ -1,15 +1,22 @@
 package com.bankingsystem.bankaccount.service;
 
+import java.math.BigDecimal;
+import java.time.Year;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
 import com.bankingsystem.bankaccount.client.CustomerClient;
 import com.bankingsystem.bankaccount.dto.BankAccountDto;
+import com.bankingsystem.bankaccount.dto.CreateBankAccountDto;
 import com.bankingsystem.bankaccount.dto.CustomerDto;
 import com.bankingsystem.bankaccount.entity.AccountType;
 import com.bankingsystem.bankaccount.entity.BankAccount;
+import com.bankingsystem.bankaccount.exception.BankAccountAlreadyExistsException;
 import com.bankingsystem.bankaccount.exception.BankAccountNotFoundException;
+import com.bankingsystem.bankaccount.exception.InvalidBankAccountOperationException;
+import com.bankingsystem.bankaccount.helper.ApiResponse;
 import com.bankingsystem.bankaccount.helper.BankAccountMapper;
 import com.bankingsystem.bankaccount.repository.BankAccountRepo;
 
@@ -26,13 +33,30 @@ public class BankAccountServiceImpl implements BankAccountService {
     private final CustomerClient customerClient;
 
     @Override
-    public BankAccountDto createAccount(BankAccountDto dto) {
+    public BankAccountDto createAccount(CreateBankAccountDto dto) {
 
-        CustomerDto customer = customerClient.getCustomerById(dto.getCustomerId());
-        if (customer == null) {
+        if (dto.getBalance().compareTo(BigDecimal.ZERO) < 0) {
+            throw new InvalidBankAccountOperationException("Initial balance cannot be negative");
+        }
+
+        Optional<BankAccount> existingAccount = bankAccountRepo.findByCustomerIdAndAccountType(
+                dto.getCustomerId(), dto.getAccountType());
+
+        if (existingAccount.isPresent()) {
+            throw new BankAccountAlreadyExistsException("Customer already has a " + dto.getAccountType() + " account.");
+        }
+
+        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(dto.getCustomerId());
+
+        if (customerResponse == null) {
             throw new BankAccountNotFoundException("Customer not found with id: " + dto.getCustomerId());
         }
+        
+        
+
         BankAccount bankAccount = bankAccountMapper.toEntity(dto);
+
+        bankAccount.setAccountNumber(generateAccountNumber());
 
         BankAccount savedAccount = bankAccountRepo.save(bankAccount);
 
@@ -106,6 +130,7 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .map(bankAccountMapper::toDto)
                 .toList();
     }
+
     @Override
     public List<BankAccountDto> getAccountsByAccountNumber(String accountNumber) {
         return bankAccountRepo.findByAccountNumber(accountNumber)
@@ -113,16 +138,43 @@ public class BankAccountServiceImpl implements BankAccountService {
                 .map(bankAccountMapper::toDto)
                 .toList();
     }
+
     @Override
     public List<BankAccountDto> getAccountsByAccountType(String accountType) {
         if (accountType == null || accountType.trim().isEmpty()) {
-            throw new IllegalArgumentException("Account type cannot be null or empty");
+            throw new InvalidBankAccountOperationException("Account type cannot be null or empty");
         }
-    
+
         return bankAccountRepo.findByAccountType(AccountType.valueOf(accountType.toUpperCase()))
                 .stream()
                 .map(bankAccountMapper::toDto)
                 .toList();
+    }
+
+    @Override
+    public BankAccountDto updateAccountBalance(Long id, BigDecimal newBalance) {
+        BankAccount bankAccount = bankAccountRepo.findById(id)
+                .orElseThrow(() -> new BankAccountNotFoundException("Bank account not found with id: " + id));
+
+        bankAccount.setBalance(newBalance);
+        BankAccount updatedAccount = bankAccountRepo.save(bankAccount);
+
+        return bankAccountMapper.toDto(updatedAccount);
+    }
+
+    private String generateAccountNumber() {
+        Year currentYear = Year.now();
+        int min = 100000;
+        int max = 999999;
+
+        int random = (int) Math.floor(Math.random() * (max - min + 1) + min);
+
+        String year = String.valueOf(currentYear);
+        String randomNumber = String.valueOf(random);
+
+        StringBuilder accountNumber = new StringBuilder();
+
+        return accountNumber.append(year).append(randomNumber).toString();
     }
 
 }

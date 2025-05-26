@@ -1,5 +1,6 @@
 package com.bankingsystem.bankaccount.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -7,9 +8,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.bankingsystem.bankaccount.dto.BankAccountDto;
+import com.bankingsystem.bankaccount.dto.CreateBankAccountDto;
+import com.bankingsystem.bankaccount.dto.UpdateBalanceRequest;
 import com.bankingsystem.bankaccount.helper.ApiResponse;
 import com.bankingsystem.bankaccount.service.BankAccountService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -20,7 +24,7 @@ public class BankAccountController {
     private final BankAccountService bankAccountService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<BankAccountDto>> createAccount(@RequestBody BankAccountDto bankAccountDto) {
+    public ResponseEntity<ApiResponse<BankAccountDto>> createAccount(@Valid @RequestBody CreateBankAccountDto bankAccountDto) {
         BankAccountDto createdAccount = bankAccountService.createAccount(bankAccountDto);
         ApiResponse<BankAccountDto> response = ApiResponse.<BankAccountDto>builder()
                 .success(true)
@@ -88,14 +92,18 @@ public class BankAccountController {
 
     @PatchMapping("/{id}/deactivate")
     public ResponseEntity<ApiResponse<BankAccountDto>> deactivateAccount(@PathVariable Long id) {
+
         BankAccountDto deactivatedAccount = bankAccountService.deactivateAccount(id);
+
         ApiResponse<BankAccountDto> response = ApiResponse.<BankAccountDto>builder()
                 .success(true)
                 .message("Bank account deactivated successfully")
                 .data(deactivatedAccount)
                 .build();
+                
         return ResponseEntity.ok(response);
     }
+
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<ApiResponse<List<BankAccountDto>>> getAccountsByCustomerId(@PathVariable Long customerId) {
         List<BankAccountDto> accounts = bankAccountService.getAccountsByCustomerId(customerId);
@@ -108,7 +116,8 @@ public class BankAccountController {
     }
 
     @GetMapping("/account-number/{accountNumber}")
-    public ResponseEntity<ApiResponse<List<BankAccountDto>>> getAccountsByAccountNumber(@PathVariable String accountNumber) {
+    public ResponseEntity<ApiResponse<List<BankAccountDto>>> getAccountsByAccountNumber(
+            @PathVariable String accountNumber) {
         List<BankAccountDto> accounts = bankAccountService.getAccountsByAccountNumber(accountNumber);
         ApiResponse<List<BankAccountDto>> response = ApiResponse.<List<BankAccountDto>>builder()
                 .success(true)
@@ -117,8 +126,11 @@ public class BankAccountController {
                 .build();
         return ResponseEntity.ok(response);
     }
+
     @GetMapping("/account-type/{accountType}")
-    public ResponseEntity<ApiResponse<List<BankAccountDto>>> getAccountsByAccountType(@PathVariable String accountType) {
+    public ResponseEntity<ApiResponse<List<BankAccountDto>>> getAccountsByAccountType(
+            @PathVariable String accountType) {
+
         List<BankAccountDto> accounts = bankAccountService.getAccountsByAccountType(accountType);
         ApiResponse<List<BankAccountDto>> response = ApiResponse.<List<BankAccountDto>>builder()
                 .success(true)
@@ -127,4 +139,22 @@ public class BankAccountController {
                 .build();
         return ResponseEntity.ok(response);
     }
+
+   
+    @PutMapping("/{id}/balance")
+    public ResponseEntity<ApiResponse<BankAccountDto>> updateBalance(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateBalanceRequest request) {
+
+        BankAccountDto updatedAccount = bankAccountService.updateAccountBalance(id, request.getNewBalance());
+
+        ApiResponse<BankAccountDto> response = ApiResponse.<BankAccountDto>builder()
+                .success(true)
+                .message("Bank account balance updated successfully")
+                .data(updatedAccount)
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
 }

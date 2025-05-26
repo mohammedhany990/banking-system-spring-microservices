@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class Transaction {
 
-   @Id
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -57,6 +57,5 @@ public class Transaction {
 
     @Size(max = 100)
     private String referenceNumber;
-
 
 }

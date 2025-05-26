@@ -1,0 +1,16 @@
+server:
+  port: 8080
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: customer-service
+        url: http://customer-service:8080/v3/api-docs
+      - name: bank-account-service
+        url: http://bank-account-service:8080/v3/api-docs
+      - name: transaction-service
+        url: http://transaction-service:8080/v3/api-docs
+      - name: loan-service
+        url: http://loan-service:8080/v3/api-docs
+      - name: card-service
+        url: http://card-service:8080/v3/api-docs

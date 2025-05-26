@@ -1,5 +1,7 @@
 package com.bankingsystem.bankaccount.dto;
 
+import java.math.BigDecimal;
+
 import com.bankingsystem.bankaccount.entity.AccountType;
 
 import lombok.AllArgsConstructor;
@@ -19,7 +21,7 @@ public class BankAccountDto {
 
     private String accountNumber;
 
-    private double balance;
+    private BigDecimal balance;
 
     private AccountType accountType;
 

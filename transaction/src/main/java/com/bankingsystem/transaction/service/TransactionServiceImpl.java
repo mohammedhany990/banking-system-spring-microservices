@@ -5,22 +5,24 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import com.bankingsystem.transaction.client.AccountClient;
 import com.bankingsystem.transaction.client.CustomerClient;
+import com.bankingsystem.transaction.dto.BankAccountDto;
 import com.bankingsystem.transaction.dto.CustomerDto;
-import com.bankingsystem.transaction.dto.TransactionDto;
-import com.bankingsystem.transaction.helper.TransactionMapper;
-import com.bankingsystem.transaction.repository.TransactionRepo;
+import com.bankingsystem.transaction.dto.DepositRequest;
+import com.bankingsystem.transaction.dto.TransactionDateRangeRequest;
+import com.bankingsystem.transaction.dto.TransactionResponse;
+import com.bankingsystem.transaction.dto.TransferRequest;
+import com.bankingsystem.transaction.dto.WithdrawRequest;
 import com.bankingsystem.transaction.entity.Transaction;
 import com.bankingsystem.transaction.entity.TransactionStatus;
 import com.bankingsystem.transaction.entity.TransactionType;
-import com.bankingsystem.transaction.exception.InvalidTransactionException;
-import com.bankingsystem.transaction.exception.TransactionNotFoundException;
+import com.bankingsystem.transaction.helper.ApiResponse;
+import com.bankingsystem.transaction.helper.TransactionMapper;
+import com.bankingsystem.transaction.repository.TransactionRepo;
 
 import lombok.RequiredArgsConstructor;
-
 @Service
 @RequiredArgsConstructor
 public class TransactionServiceImpl implements TransactionService {
@@ -31,166 +33,203 @@ public class TransactionServiceImpl implements TransactionService {
     private final CustomerClient customerClient;
 
     @Override
-    public TransactionDto createTransaction(TransactionDto transactionDto) {
-        if (transactionDto == null) {
-            throw new InvalidTransactionException("Transaction data must be provided");
+    public TransactionResponse deposit(DepositRequest request) {
+        if (request == null || request.getAccountId() == null || request.getAmount() == null
+                || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Invalid deposit request: accountId and positive amount are required.");
         }
 
-        if (transactionDto.getAmount() == null || transactionDto.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidTransactionException("Transaction amount must be greater than zero");
-        }
-        if (transactionDto.getType() == null || transactionDto.getType().trim().isEmpty()) {
-            throw new InvalidTransactionException("Transaction type must be provided");
-        }
-        if (transactionDto.getStatus() == null || transactionDto.getStatus().trim().isEmpty()) {
-            throw new InvalidTransactionException("Transaction status must be provided");
-        }
-        TransactionType transactionType = parseTransactionType(transactionDto.getType());
-        TransactionStatus transactionStatus = parseTransactionStatus(transactionDto.getStatus());
-
-        String accountResponse = accountClient.getAccountById(transactionDto.getAccountId());
-        if (accountResponse == null) {
-            throw new InvalidTransactionException("Account not found for id: " + transactionDto.getAccountId());
+        ApiResponse<BankAccountDto> accountResponse = accountClient.getAccountById(request.getAccountId());
+        if (accountResponse == null || !accountResponse.isSuccess() || accountResponse.getData() == null) {
+            throw new IllegalArgumentException("Account not found for id: " + request.getAccountId());
         }
 
-        // ✅ Example: check if customer exists
-        CustomerDto customerDto = customerClient.getCustomerById(transactionDto.getCustomerId());
-        if (customerDto == null) {
-            throw new InvalidTransactionException("Customer not found for id: " + transactionDto.getCustomerId());
+        BankAccountDto account = accountResponse.getData();
+
+        if (!account.isActive()) {
+            throw new IllegalArgumentException("Cannot deposit to an inactive account");
         }
 
-        Transaction transaction = transactionMapper.toEntity(transactionDto);
-        transaction.setTransactionDate(LocalDateTime.now());
+        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(account.getCustomerId());
+        if (customerResponse == null || !customerResponse.isSuccess() || customerResponse.getData() == null) {
+            throw new IllegalArgumentException("Customer not found for id: " + account.getCustomerId());
+        }
 
-        Transaction saved = transactionRepo.save(transaction);
-        return transactionMapper.toDto(saved);
+        CustomerDto customer = customerResponse.getData();
+
+        // Update balance
+        BigDecimal newBalance = account.getBalance().add(request.getAmount());
+
+        // Update account balance via AccountClient
+        ApiResponse<BankAccountDto> updatedAccountResponse = accountClient.updateAccountBalance(account.getId(),
+                newBalance);
+        if (updatedAccountResponse == null || !updatedAccountResponse.isSuccess()
+                || updatedAccountResponse.getData() == null) {
+            throw new IllegalArgumentException("Failed to update account balance for id: " + account.getId());
+        }
+
+        BankAccountDto updatedAccount = updatedAccountResponse.getData();
+
+        Transaction transaction = Transaction.builder()
+                .accountId(request.getAccountId())
+                .amount(request.getAmount())
+                .type(TransactionType.DEPOSIT)
+                .status(TransactionStatus.SUCCESS)
+                .transactionDate(LocalDateTime.now())
+                .build();
+
+        Transaction savedTransaction = transactionRepo.save(transaction);
+
+        TransactionResponse response = transactionMapper.toResponse(
+                savedTransaction,
+                customer,
+                updatedAccount.getBalance(),
+                updatedAccount.getAccountNumber());
+
+        // Add success info
+        response.setSuccess(true);
+        response.setMessage("Deposit successful");
+
+        return response;
     }
 
     @Override
-    public TransactionDto getTransactionById(Long id) {
-        return transactionRepo.findById(id)
-                .map(transactionMapper::toDto)
-                .orElseThrow(() -> new TransactionNotFoundException("Transaction with id " + id + " not found"));
+    public TransactionResponse withdraw(WithdrawRequest request) {
+
+        if (request == null || request.getAccountId() == null || request.getAmount() == null
+                || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Invalid deposit request: accountId and positive amount are required.");
+        }
+
+        ApiResponse<BankAccountDto> accountResponse = accountClient.getAccountById(request.getAccountId());
+        if (accountResponse == null || !accountResponse.isSuccess() || accountResponse.getData() == null) {
+            throw new IllegalArgumentException("Account not found for id: " + request.getAccountId());
+        }
+
+        BankAccountDto account = accountResponse.getData();
+
+        if (!account.isActive()) {
+            throw new IllegalArgumentException("Cannot deposit to an inactive account");
+        }
+
+        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(account.getCustomerId());
+        if (customerResponse == null || !customerResponse.isSuccess() || customerResponse.getData() == null) {
+            throw new IllegalArgumentException("Customer not found for id: " + account.getCustomerId());
+        }
+
+        CustomerDto customer = customerResponse.getData();
+
+        // Update balance
+        BigDecimal newBalance = account.getBalance().subtract(request.getAmount());
+
+        // Update account balance via AccountClient
+        ApiResponse<BankAccountDto> updatedAccountResponse = accountClient.updateAccountBalance(account.getId(),
+                newBalance);
+        if (updatedAccountResponse == null || !updatedAccountResponse.isSuccess()
+                || updatedAccountResponse.getData() == null) {
+            throw new IllegalArgumentException("Failed to update account balance for id: " + account.getId());
+        }
+
+        BankAccountDto updatedAccount = updatedAccountResponse.getData();
+
+        Transaction transaction = Transaction.builder()
+                .accountId(request.getAccountId())
+                .amount(request.getAmount())
+                .type(TransactionType.DEPOSIT)
+                .status(TransactionStatus.SUCCESS)
+                .transactionDate(LocalDateTime.now())
+                .build();
+
+        Transaction savedTransaction = transactionRepo.save(transaction);
+
+        TransactionResponse response = transactionMapper.toResponse(
+                savedTransaction,
+                customer,
+                updatedAccount.getBalance(),
+                updatedAccount.getAccountNumber());
+
+        response.setSuccess(true);
+        response.setMessage("Withdraw successful");
+
+        return response;
+
     }
 
     @Override
-    public List<TransactionDto> getTransactionsByAccountId(Long accountId) {
-        return transactionRepo.findByAccountId(accountId)
-                .stream()
-                .map(transactionMapper::toDto)
-                .toList();
+    public TransactionResponse transfer(TransferRequest request) {
+
+        ApiResponse<BankAccountDto> senderResponse = accountClient.getAccountById(request.getFromAccountId());
+        if (senderResponse == null || !senderResponse.isSuccess() || senderResponse.getData() == null) {
+            throw new IllegalArgumentException("Account not found for id: " + request.getFromAccountId());
+        }
+        BankAccountDto sender = senderResponse.getData();
+
+        ApiResponse<BankAccountDto> receiverResponse = accountClient.getAccountById(request.getToAccountId());
+        if (receiverResponse == null || !receiverResponse.isSuccess() || receiverResponse.getData() == null) {
+            throw new IllegalArgumentException("Account not found for id: " + request.getToAccountId());
+        }
+        BankAccountDto receiver = receiverResponse.getData();
+
+        if (sender.getBalance().compareTo(request.getAmount()) < 0) {
+            throw new IllegalArgumentException("");
+        }
+
+        BigDecimal newSenderBalance = sender.getBalance().subtract(request.getAmount());
+        sender.setBalance(newSenderBalance);
+
+        BigDecimal newReceiverBalance = receiver.getBalance().add(request.getAmount());
+        receiver.setBalance(newReceiverBalance);
+
+        ApiResponse<BankAccountDto> updatedReceiverResponse = accountClient
+                .updateAccountBalance(request.getToAccountId(), newReceiverBalance);
+        if (updatedReceiverResponse == null || !updatedReceiverResponse.isSuccess()
+                || updatedReceiverResponse.getData() == null) {
+            throw new IllegalArgumentException("Failed to update account balance for id: " + request.getToAccountId());
+        }
+
+        ApiResponse<BankAccountDto> updatedSenderResponse = accountClient
+                .updateAccountBalance(request.getFromAccountId(), newSenderBalance);
+        if (updatedSenderResponse == null || !updatedSenderResponse.isSuccess()
+                || updatedSenderResponse.getData() == null) {
+            throw new IllegalArgumentException("Failed to update account balance for id: " + request.getToAccountId());
+        }
+
+        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(sender.getCustomerId());
+        if (customerResponse == null || !customerResponse.isSuccess() || customerResponse.getData() == null) {
+            throw new IllegalArgumentException("Customer not found for id: " + sender.getCustomerId());
+        }
+
+        CustomerDto customer = customerResponse.getData();
+
+        Transaction transaction = transactionMapper.fromTransferRequest(request);
+
+        Transaction savedTransaction = transactionRepo.save(transaction);
+
+        TransactionResponse response = transactionMapper.toResponse(
+                savedTransaction,
+                customer,
+                newSenderBalance,
+                sender.getAccountNumber());
+
+        response.setSuccess(true);
+        response.setMessage("Transfer successful");
+
+        return response;
+
     }
 
     @Override
-    public List<TransactionDto> getAllTransactions() {
-        return transactionRepo.findAll()
-                .stream()
-                .map(transactionMapper::toDto)
-                .toList();
+    public List<TransactionResponse> getTransactionsByAccountId(Long accountId) {
+        List<Transaction> transactions = transactionRepo.findByAccountId(accountId);
+        return transactionMapper.toResponseList(transactions);
     }
 
     @Override
-    public TransactionDto updateTransaction(Long id, TransactionDto transactionDto) {
-        if (transactionDto == null) {
-            throw new InvalidTransactionException("Transaction data must be provided");
-        }
+    public List<TransactionResponse> getTransactionsBetweenDates(TransactionDateRangeRequest dateRangeRequest) {
+        List<Transaction> transactions = transactionRepo.findByTransactionDateBetween(dateRangeRequest.getFrom(),
+                dateRangeRequest.getTo());
 
-        Transaction existingTransaction = transactionRepo.findById(id)
-                .orElseThrow(() -> new TransactionNotFoundException("Transaction with id " + id + " not found"));
-
-        TransactionType transactionType = parseTransactionType(transactionDto.getType());
-
-        TransactionStatus transactionStatus = parseTransactionStatus(transactionDto.getStatus());
-
-        if (transactionDto.getAmount() == null || transactionDto.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidTransactionException("Transaction amount must be greater than zero");
-        }
-
-        if (transactionDto.getDescription() != null && transactionDto.getDescription().length() > 250) {
-            throw new InvalidTransactionException("Description cannot exceed 250 characters");
-        }
-
-        existingTransaction.setAmount(transactionDto.getAmount());
-        existingTransaction.setType(transactionType);
-        existingTransaction.setStatus(transactionStatus);
-        existingTransaction.setDescription(transactionDto.getDescription());
-
-        Transaction updatedTransaction = transactionRepo.save(existingTransaction);
-
-        return transactionMapper.toDto(updatedTransaction);
+        return transactionMapper.toResponseList(transactions);
     }
 
-    @Override
-    public void deleteTransaction(Long id) {
-        if (!transactionRepo.existsById(id)) {
-            throw new TransactionNotFoundException("Transaction with id " + id + " not found");
-        }
-        transactionRepo.deleteById(id);
-    }
-
-    @Override
-    public List<TransactionDto> getTransactionsByStatus(String status) {
-        if (status == null || status.trim().isEmpty()) {
-            throw new InvalidTransactionException("Transaction status cannot be null or empty");
-        }
-
-        TransactionStatus transactionStatus = parseTransactionStatus(status);
-
-        return transactionRepo.findByStatus(transactionStatus)
-                .stream()
-                .map(transactionMapper::toDto)
-                .toList();
-    }
-
-    @Override
-    public List<TransactionDto> getTransactionsByType(String type) {
-        if (type == null || type.trim().isEmpty()) {
-            throw new InvalidTransactionException("Transaction type cannot be null or empty");
-        }
-
-        TransactionType transactionType = parseTransactionType(type);
-
-        return transactionRepo.findByType(transactionType)
-                .stream()
-                .map(transactionMapper::toDto)
-                .toList();
-    }
-
-    @Override
-    public List<TransactionDto> getTransactionsBetweenDates(LocalDateTime from, LocalDateTime to) {
-        if (from == null || to == null) {
-            throw new IllegalArgumentException("Both start date and end date must be provided");
-        }
-
-        if (from.isAfter(to)) {
-            throw new IllegalArgumentException("Start date must be before end date");
-        }
-
-        return transactionRepo.findByTransactionDateBetween(from, to)
-                .stream()
-                .map(transactionMapper::toDto)
-                .toList();
-    }
-
-    private TransactionType parseTransactionType(String type) {
-        if (type == null || type.trim().isEmpty()) {
-            throw new InvalidTransactionException("Transaction type cannot be null or empty");
-        }
-        try {
-            return TransactionType.valueOf(type.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new InvalidTransactionException("Invalid transaction type: " + type);
-        }
-    }
-
-    private TransactionStatus parseTransactionStatus(String status) {
-        if (status == null || status.trim().isEmpty()) {
-            throw new InvalidTransactionException("Transaction status cannot be null or empty");
-        }
-        try {
-            return TransactionStatus.valueOf(status.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new InvalidTransactionException("Invalid transaction status: " + status);
-        }
-    }
 }

@@ -1,5 +1,7 @@
 package com.bankingsystem.bankaccount.entity;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -31,7 +33,7 @@ public class BankAccount {
     @Column(unique = true, nullable = false)
     private String accountNumber;
 
-    private double balance;
+    private BigDecimal balance;
 
     @Enumerated(EnumType.STRING)
     private AccountType accountType;
