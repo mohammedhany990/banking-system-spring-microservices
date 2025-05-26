@@ -18,8 +18,8 @@ services:
     container_name: pgadmin
     image: dpage/pgadmin4
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_DEFAULT_EMAIL: pgadmin4@pgadmin.org
+      PGADMIN_DEFAULT_PASSWORD: admin
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     volumes:
       - pgadmin:/var/lib/pgadmin
@@ -29,7 +29,9 @@ services:
       - postgres
     restart: unless-stopped
 
-  customer-service:
+  
+
+  customer:
     build:
       context: ./customer
       dockerfile: Dockerfile
@@ -41,7 +43,7 @@ services:
     depends_on:
       - postgres
 
-  bank-account-service:
+  bankaccount:
     build:
       context: ./bankaccount
       dockerfile: Dockerfile
@@ -53,7 +55,7 @@ services:
     depends_on:
       - postgres
 
-  transaction-service:
+  transaction:
     build:
       context: ./transaction
       dockerfile: Dockerfile
@@ -65,19 +67,7 @@ services:
     depends_on:
       - postgres
 
-  loan-service:
-    build:
-      context: ./loan
-      dockerfile: Dockerfile
-    container_name: loan-service
-    ports:
-      - "8084:8080"
-    networks:
-      - spring
-    depends_on:
-      - postgres
-
-  card-service:
+  card:
     build:
       context: ./card
       dockerfile: Dockerfile
@@ -89,22 +79,6 @@ services:
     depends_on:
       - postgres
 
-  # Uncomment when needed:
-  # zipkin:
-  #   image: openzipkin/zipkin
-  #   container_name: zipkin
-  #   ports:
-  #     - "9411:9411"
-  #   networks:
-  #     - spring
-  # rabbitmq:
-  #   image: rabbitmq:3.9.11-management-alpine
-  #   container_name: rabbitmq
-  #   ports:
-  #     - "5672:5672"
-  #     - "15672:15672"
-  #   networks:
-  #     - spring
 
 networks:
   postgres:
