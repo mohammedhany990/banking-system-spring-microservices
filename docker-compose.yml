@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres:
     container_name: postgres
@@ -11,7 +13,7 @@ services:
     ports:
       - "5432:5432"
     networks:
-      - postgres
+      - spring
     restart: unless-stopped
 
   pgadmin:
@@ -26,7 +28,7 @@ services:
     ports:
       - "5050:80"
     networks:
-      - postgres
+      - spring
     restart: unless-stopped
 
   rabbitmq:
@@ -34,7 +36,10 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    networks:
+      - spring
 
+  # Customer microservice
   customer:
     build:
       context: ./customer
@@ -47,6 +52,7 @@ services:
     depends_on:
       - postgres
 
+  # Bank Account microservice
   bankaccount:
     build:
       context: ./bankaccount
@@ -59,6 +65,7 @@ services:
     depends_on:
       - postgres
 
+  # Transaction microservice
   transaction:
     build:
       context: ./transaction
@@ -71,6 +78,7 @@ services:
     depends_on:
       - postgres
 
+  # Card microservice
   card:
     build:
       context: ./card
@@ -83,9 +91,33 @@ services:
     depends_on:
       - postgres
 
+  # Loan microservice
+  loan:
+    build:
+      context: ./loan
+      dockerfile: Dockerfile
+    container_name: loan-service
+    ports:
+      - "8084:8080"
+    networks:
+      - spring
+    depends_on:
+      - postgres
+
+  # Notification microservice
+  notification:
+    build:
+      context: ./notification
+      dockerfile: Dockerfile
+    container_name: notification-service
+    ports:
+      - "8086:8080"
+    networks:
+      - spring
+    depends_on:
+      - postgres
+
 networks:
-  postgres:
-    driver: bridge
   spring:
     driver: bridge
 
