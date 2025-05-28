@@ -16,6 +16,7 @@ spring:
         format_sql: true
     show-sql: true
 
+
 eureka:
   client:
     service-url:
@@ -23,3 +24,5 @@ eureka:
     fetch-registry: true
     register-with-eureka: true
     enabled: true
+
+

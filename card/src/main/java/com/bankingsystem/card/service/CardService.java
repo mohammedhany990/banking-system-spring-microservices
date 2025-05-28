@@ -37,6 +37,6 @@ public interface CardService {
 
     TransactionResponse withdrawUsingCard(Long cardId,WithdrawRequest request);
     TransactionResponse depositUsingCard(Long cardId,DepositRequest request);
-    TransactionResponse transferUsingCard(Long cardId,TransferRequest request);
+    //TransactionResponse transferUsingCard(Long cardId,TransferRequest request);
 
 }

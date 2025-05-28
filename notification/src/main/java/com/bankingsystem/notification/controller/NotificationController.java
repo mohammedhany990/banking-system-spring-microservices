@@ -1,18 +1,13 @@
 package com.bankingsystem.notification.controller;
-
 import java.util.List;
 import java.util.UUID;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import com.bankingsystem.notification.dto.CreateNotificationDto;
 import com.bankingsystem.notification.dto.NotificationDto;
-import com.bankingsystem.notification.exception.InvalidNotificationException;
 import com.bankingsystem.notification.helper.ApiResponse;
 import com.bankingsystem.notification.service.NotificationService;
-
 import lombok.RequiredArgsConstructor;
 
 @RestController

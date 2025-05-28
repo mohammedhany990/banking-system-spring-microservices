@@ -8,29 +8,37 @@ import org.springframework.stereotype.Service;
 
 import com.bankingsystem.transaction.client.AccountClient;
 import com.bankingsystem.transaction.client.CustomerClient;
+import com.bankingsystem.transaction.client.NotificationClient;
 import com.bankingsystem.transaction.dto.BankAccountDto;
+import com.bankingsystem.transaction.dto.CreateNotificationDto;
 import com.bankingsystem.transaction.dto.CustomerDto;
 import com.bankingsystem.transaction.dto.DepositRequest;
 import com.bankingsystem.transaction.dto.TransactionDateRangeRequest;
 import com.bankingsystem.transaction.dto.TransactionResponse;
+
 import com.bankingsystem.transaction.dto.TransferRequest;
 import com.bankingsystem.transaction.dto.WithdrawRequest;
 import com.bankingsystem.transaction.entity.Transaction;
 import com.bankingsystem.transaction.entity.TransactionStatus;
 import com.bankingsystem.transaction.entity.TransactionType;
+import com.bankingsystem.transaction.exception.TransferException;
 import com.bankingsystem.transaction.helper.ApiResponse;
 import com.bankingsystem.transaction.helper.TransactionMapper;
 import com.bankingsystem.transaction.repository.TransactionRepo;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepo transactionRepo;
     private final TransactionMapper transactionMapper;
     private final AccountClient accountClient;
     private final CustomerClient customerClient;
+    private final NotificationClient notificationClient;
 
     @Override
     public TransactionResponse deposit(DepositRequest request) {
@@ -57,10 +65,8 @@ public class TransactionServiceImpl implements TransactionService {
 
         CustomerDto customer = customerResponse.getData();
 
-        // Update balance
         BigDecimal newBalance = account.getBalance().add(request.getAmount());
 
-        // Update account balance via AccountClient
         ApiResponse<BankAccountDto> updatedAccountResponse = accountClient.updateAccountBalance(account.getId(),
                 newBalance);
         if (updatedAccountResponse == null || !updatedAccountResponse.isSuccess()
@@ -86,9 +92,21 @@ public class TransactionServiceImpl implements TransactionService {
                 updatedAccount.getBalance(),
                 updatedAccount.getAccountNumber());
 
-        // Add success info
         response.setSuccess(true);
         response.setMessage("Deposit successful");
+
+        try {
+            notificationClient.sendNotification(CreateNotificationDto.builder()
+                    .customerId(customer.getId())
+                    .customerEmail(customer.getEmail())
+                    .title("Deposit Successful")
+                    .type("TRANSACTION")
+                    .message("Dear " + customer.getFirstName() + ", your deposit of " + request.getAmount()
+                            + " was successful.")
+                    .build());
+        } catch (Exception e) {
+            log.error("Failed to send deposit notification ", e);
+        }
 
         return response;
     }
@@ -119,10 +137,8 @@ public class TransactionServiceImpl implements TransactionService {
 
         CustomerDto customer = customerResponse.getData();
 
-        // Update balance
         BigDecimal newBalance = account.getBalance().subtract(request.getAmount());
 
-        // Update account balance via AccountClient
         ApiResponse<BankAccountDto> updatedAccountResponse = accountClient.updateAccountBalance(account.getId(),
                 newBalance);
         if (updatedAccountResponse == null || !updatedAccountResponse.isSuccess()
@@ -151,6 +167,19 @@ public class TransactionServiceImpl implements TransactionService {
         response.setSuccess(true);
         response.setMessage("Withdraw successful");
 
+        try {
+            notificationClient.sendNotification(CreateNotificationDto.builder()
+                    .customerId(customer.getId())
+                    .customerEmail(customer.getEmail())
+                    .title("Withdrawal Successful")
+                    .type("TRANSACTION")
+                    .message("Dear " + customer.getFirstName() + ", your withdrawal of " + request.getAmount()
+                            + " was successful.")
+                    .build());
+        } catch (Exception e) {
+            log.error("Failed to send withdrawal notification ", e);
+        }
+
         return response;
 
     }
@@ -160,18 +189,18 @@ public class TransactionServiceImpl implements TransactionService {
 
         ApiResponse<BankAccountDto> senderResponse = accountClient.getAccountById(request.getFromAccountId());
         if (senderResponse == null || !senderResponse.isSuccess() || senderResponse.getData() == null) {
-            throw new IllegalArgumentException("Account not found for id: " + request.getFromAccountId());
+            throw new TransferException("Account not found for id: " + request.getFromAccountId());
         }
         BankAccountDto sender = senderResponse.getData();
 
         ApiResponse<BankAccountDto> receiverResponse = accountClient.getAccountById(request.getToAccountId());
         if (receiverResponse == null || !receiverResponse.isSuccess() || receiverResponse.getData() == null) {
-            throw new IllegalArgumentException("Account not found for id: " + request.getToAccountId());
+            throw new TransferException("Account not found for id: " + request.getToAccountId());
         }
         BankAccountDto receiver = receiverResponse.getData();
 
         if (sender.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new IllegalArgumentException("");
+            throw new TransferException("Insufficient balance for transfer");
         }
 
         BigDecimal newSenderBalance = sender.getBalance().subtract(request.getAmount());
@@ -184,38 +213,66 @@ public class TransactionServiceImpl implements TransactionService {
                 .updateAccountBalance(request.getToAccountId(), newReceiverBalance);
         if (updatedReceiverResponse == null || !updatedReceiverResponse.isSuccess()
                 || updatedReceiverResponse.getData() == null) {
-            throw new IllegalArgumentException("Failed to update account balance for id: " + request.getToAccountId());
+            throw new TransferException("Failed to update account balance for id: " + request.getToAccountId());
         }
 
         ApiResponse<BankAccountDto> updatedSenderResponse = accountClient
                 .updateAccountBalance(request.getFromAccountId(), newSenderBalance);
         if (updatedSenderResponse == null || !updatedSenderResponse.isSuccess()
                 || updatedSenderResponse.getData() == null) {
-            throw new IllegalArgumentException("Failed to update account balance for id: " + request.getToAccountId());
+            throw new TransferException(
+                    "Failed to update account balance for id: " + request.getFromAccountId());
         }
 
-        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(sender.getCustomerId());
-        if (customerResponse == null || !customerResponse.isSuccess() || customerResponse.getData() == null) {
-            throw new IllegalArgumentException("Customer not found for id: " + sender.getCustomerId());
+        ApiResponse<CustomerDto> senderCustomerResponse = customerClient.getCustomerById(sender.getCustomerId());
+        if (senderCustomerResponse == null || !senderCustomerResponse.isSuccess()
+                || senderCustomerResponse.getData() == null) {
+            throw new TransferException("Customer not found for id: " + sender.getCustomerId());
         }
+        CustomerDto senderCustomer = senderCustomerResponse.getData();
 
-        CustomerDto customer = customerResponse.getData();
+        ApiResponse<CustomerDto> receiverCustomerResponse = customerClient.getCustomerById(receiver.getCustomerId());
+        if (receiverCustomerResponse == null || !receiverCustomerResponse.isSuccess()
+                || receiverCustomerResponse.getData() == null) {
+            throw new TransferException("Customer not found for id: " + receiver.getCustomerId());
+        }
+        CustomerDto receiverCustomer = receiverCustomerResponse.getData();
 
         Transaction transaction = transactionMapper.fromTransferRequest(request);
-
         Transaction savedTransaction = transactionRepo.save(transaction);
 
         TransactionResponse response = transactionMapper.toResponse(
                 savedTransaction,
-                customer,
+                senderCustomer,
                 newSenderBalance,
                 sender.getAccountNumber());
 
         response.setSuccess(true);
         response.setMessage("Transfer successful");
 
-        return response;
+        try {
+            notificationClient.sendNotification(CreateNotificationDto.builder()
+                    .customerId(senderCustomer.getId())
+                    .customerEmail(senderCustomer.getEmail())
+                    .title("Transfer Successful")
+                    .type("TRANSACTION")
+                    .message("Dear " + senderCustomer.getFirstName() + ", your transfer of " + request.getAmount()
+                            + " to account " + receiver.getAccountNumber() + " was successful.")
+                    .build());
 
+            notificationClient.sendNotification(CreateNotificationDto.builder()
+                    .customerId(receiverCustomer.getId())
+                    .customerEmail(receiverCustomer.getEmail())
+                    .title("Received Transfer")
+                    .type("TRANSACTION")
+                    .message("Dear " + receiverCustomer.getFirstName() + ", you have received " + request.getAmount()
+                            + " from account " + sender.getAccountNumber() + ".")
+                    .build());
+        } catch (Exception e) {
+            log.error("Failed to send transfer notifications", e);
+        }
+
+        return response;
     }
 
     @Override

@@ -21,7 +21,7 @@ public class CustomerClient {
 
     private final RestTemplate restTemplate;
 
-    private final String CUSTOMER_SERVICE_URL = "http://localhost:8080/api/v1/customers";
+    private final String CUSTOMER_SERVICE_URL = "http://localhost:8081/api/v1/customers";
 
     public ApiResponse<CustomerDto> getCustomerById(Long customerId) {
         try {

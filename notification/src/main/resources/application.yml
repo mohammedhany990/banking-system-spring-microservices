@@ -3,10 +3,12 @@ server:
 spring:
   application:
     name: notification
+
   datasource:
     password: 1234
     url: jdbc:postgresql://localhost:5432/notification
     username: mohamed
+
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -15,7 +17,26 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
     show-sql: true
-  
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: mohammedhanymaher1163@gmail.com
+    password: yscivyqphvievrue
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 eureka:
   client:
     service-url:
@@ -23,3 +44,11 @@ eureka:
     fetch-registry: true
     register-with-eureka: true
     enabled: true
+
+rabbitmq:
+  exchanges:
+    internal: internal.exchange
+  queues:
+    notification: notification.queue
+  routing-keys:
+    internal-notification: internal.notification.routing-key

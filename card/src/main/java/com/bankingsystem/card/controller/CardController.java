@@ -130,21 +130,21 @@ public class CardController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{cardId}/transfer")
-    public ResponseEntity<ApiResponse<TransactionResponse>> transferUsingCard(
-            @PathVariable Long cardId,
-            @RequestBody TransferRequest request) {
+//     @PostMapping("/{cardId}/transfer")
+//     public ResponseEntity<ApiResponse<TransactionResponse>> transferUsingCard(
+//             @PathVariable Long cardId,
+//             @RequestBody TransferRequest request) {
 
-        TransactionResponse transactionResponse = cardService.transferUsingCard(cardId, request);
+//         TransactionResponse transactionResponse = cardService.transferUsingCard(cardId, request);
 
-        ApiResponse<TransactionResponse> response = ApiResponse.<TransactionResponse>builder()
-                .success(true)
-                .message("Transfer completed successfully.")
-                .data(transactionResponse)
-                .build();
+//         ApiResponse<TransactionResponse> response = ApiResponse.<TransactionResponse>builder()
+//                 .success(true)
+//                 .message("Transfer completed successfully.")
+//                 .data(transactionResponse)
+//                 .build();
 
-        return ResponseEntity.ok(response);
-    }
+//         return ResponseEntity.ok(response);
+//     }
 
     @PostMapping("/{cardId}/withdraw")
     public ResponseEntity<ApiResponse<TransactionResponse>> withdrawUsingCard(

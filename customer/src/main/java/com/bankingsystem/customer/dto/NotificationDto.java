@@ -1,9 +1,8 @@
-package com.bankingsystem.notification.dto;
+package com.bankingsystem.customer.dto;
+
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-
-import com.bankingsystem.notification.entity.NotificationType;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,7 +21,7 @@ public class NotificationDto {
     private String title;
     private String message;
     private NotificationType type;
-    private boolean read;
+    private boolean  read;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

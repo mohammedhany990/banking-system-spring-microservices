@@ -1,4 +1,4 @@
-package com.bankingsystem.notification.entity;
+package com.bankingsystem.customer.dto;
 
 public enum NotificationType
 {

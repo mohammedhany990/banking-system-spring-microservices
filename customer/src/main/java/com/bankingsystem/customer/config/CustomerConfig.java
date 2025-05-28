@@ -10,7 +10,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class CustomerConfig {
 
-    @LoadBalanced
+   
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();

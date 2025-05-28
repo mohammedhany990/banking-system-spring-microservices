@@ -1,6 +1,4 @@
-package com.bankingsystem.notification.dto;
-
-import com.bankingsystem.notification.entity.NotificationType;
+package com.bankingsystem.bankaccount.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,7 +9,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@NoArgsConstructor
+@NoArgsConstructor      
 @AllArgsConstructor
 public class CreateNotificationDto {
 
@@ -30,4 +28,3 @@ public class CreateNotificationDto {
     @NotNull(message = "Notification type must not be null")
     private String type;
 }
-

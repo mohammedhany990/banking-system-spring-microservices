@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import com.bankingsystem.customer.exception.CustomerAlreadyExistsException;
 import com.bankingsystem.customer.exception.CustomerNotFoundException;
 import com.bankingsystem.customer.helper.ApiResponse;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -41,6 +42,15 @@ public class GlobalExceptionHandler {
                 .message(ex.getMessage())
                 .build();
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(CustomerAlreadyExistsException.class)
+    public ResponseEntity<ApiResponse<String>> handleCustomerAlreadyExists(CustomerAlreadyExistsException ex) {
+        ApiResponse<String> response = ApiResponse.<String>builder()
+                .success(false)
+                .message(ex.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(InvalidTransactionException.class)

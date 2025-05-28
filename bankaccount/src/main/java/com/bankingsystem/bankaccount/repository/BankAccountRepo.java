@@ -11,13 +11,15 @@ import com.bankingsystem.bankaccount.entity.BankAccount;
 
 @Repository
 public interface BankAccountRepo extends JpaRepository<BankAccount, Long> {
-    
+
     List<BankAccount> findByCustomerId(Long customerId);
+
     Optional<BankAccount> findByCustomerIdAndAccountType(Long customerId, AccountType accountType);
 
-    
+    boolean existsByAccountNumber(String accountNumber);
+
     List<BankAccount> findByAccountNumber(String accountNumber);
- 
+
     List<BankAccount> findByAccountType(AccountType accountType);
-  
+
 }

@@ -9,18 +9,22 @@ import org.springframework.util.StringUtils;
 import com.bankingsystem.notification.dto.CreateNotificationDto;
 import com.bankingsystem.notification.dto.NotificationDto;
 import com.bankingsystem.notification.entity.Notification;
+import com.bankingsystem.notification.entity.NotificationType;
 import com.bankingsystem.notification.exception.InvalidNotificationException;
 import com.bankingsystem.notification.helper.NotificationMapper;
 import com.bankingsystem.notification.repository.NotificationRepo;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepo notificationRepo;
     private final NotificationMapper notificationMapper;
+    private final NotificationPublisher notificationPublisher;
 
     @Override
     public NotificationDto createNotification(CreateNotificationDto dto) {
@@ -30,11 +34,27 @@ public class NotificationServiceImpl implements NotificationService {
             throw new InvalidNotificationException("Notification data could not be mapped from DTO.");
         }
 
+         NotificationType notificationType;
+        try {
+            notificationType = NotificationType.valueOf(dto.getType().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid notification type: {}", dto.getType());
+            throw new RuntimeException("Invalid notification type: " + dto.getType(), e);
+        }
+        notification.setType(notificationType);
+
+       
         validateNotification(notification);
+
         notification.setRead(false);
 
         Notification savedNotification = notificationRepo.save(notification);
-        return notificationMapper.toDto(savedNotification);
+
+        NotificationDto notificationDto = notificationMapper.toDto(savedNotification);
+
+        notificationPublisher.sendNotification(notificationDto);
+
+        return notificationDto;
     }
 
     private void validateNotification(Notification notification) {
