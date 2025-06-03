@@ -51,7 +51,7 @@ public class BankAccountServiceImpl implements BankAccountService {
             throw new BankAccountAlreadyExistsException("Customer already has a " + dto.getAccountType() + " account.");
         }
 
-        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(dto.getCustomerId());
+        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(dto.getCustomerId()).block();
 
         if (customerResponse == null || !customerResponse.isSuccess() || customerResponse.getData() == null) {
             throw new BankAccountNotFoundException("Customer not found with id: " + dto.getCustomerId());
@@ -68,7 +68,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         BankAccount savedAccount = bankAccountRepo.save(bankAccount);
 
         try {
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(customer.getId())
                     .customerEmail(customer.getEmail())
                     .title("Welcome to Our Platform!\n\n")
@@ -108,7 +108,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         BankAccount bankAccount = bankAccountRepo.findById(id)
                 .orElseThrow(() -> new BankAccountNotFoundException("Bank account not found with id: " + id));
 
-        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(bankAccount.getCustomerId());
+        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(bankAccount.getCustomerId()).block();
         if (customerResponse == null || !customerResponse.isSuccess() || customerResponse.getData() == null) {
             throw new BankAccountNotFoundException("Customer not found with id: " + id);
         }
@@ -116,7 +116,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         CustomerDto customer = customerResponse.getData();
 
         try {
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(bankAccount.getCustomerId())
                     .customerEmail(customer.getEmail())
                     .title("Bank Account Closure Notice\n\n")
@@ -146,7 +146,7 @@ public class BankAccountServiceImpl implements BankAccountService {
 
         BankAccount updatedAccount = bankAccountRepo.save(existingAccount);
 
-        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(existingAccount.getCustomerId());
+        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(existingAccount.getCustomerId()).block();
         if (customerResponse == null || !customerResponse.isSuccess() || customerResponse.getData() == null) {
             throw new BankAccountNotFoundException("Customer not found with id: " + dto.getCustomerId());
         }
@@ -154,7 +154,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         CustomerDto customer = customerResponse.getData();
 
         try {
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(customer.getId())
                     .customerEmail(customer.getEmail())
                     .title("Bank Account Update Notice\n\n")
@@ -210,14 +210,14 @@ public class BankAccountServiceImpl implements BankAccountService {
         BankAccount updatedAccount = bankAccountRepo.save(bankAccount);
 
         // Fetch customer info for notification
-        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(bankAccount.getCustomerId());
+        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(bankAccount.getCustomerId()).block();
         if (customerResponse == null || customerResponse.getData() == null) {
             throw new BankAccountNotFoundException("Customer not found with id: " + bankAccount.getCustomerId());
         }
         CustomerDto customer = customerResponse.getData();
 
         try {
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(customer.getId())
                     .customerEmail(customer.getEmail())
                     .title("Bank Account Balance Update Notice\n\n")
@@ -264,7 +264,9 @@ public class BankAccountServiceImpl implements BankAccountService {
 
     private void sendAccountStatusNotification(BankAccount account, boolean activated) {
 
-        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(account.getCustomerId());
+        ApiResponse<CustomerDto> customerResponse = customerClient
+                .getCustomerById(account.getCustomerId())
+                .block();
 
         if (customerResponse == null || customerResponse.getData() == null) {
             log.error("Failed to send notification: Customer not found with id {}", account.getCustomerId());
@@ -276,7 +278,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         String title = "Bank Account " + (activated ? "Activation" : "Deactivation") + " Notice\n\n";
 
         try {
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(customer.getId())
                     .customerEmail(customer.getEmail())
                     .title(title)

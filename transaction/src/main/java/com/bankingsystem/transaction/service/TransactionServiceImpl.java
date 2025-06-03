@@ -15,7 +15,6 @@ import com.bankingsystem.transaction.dto.CustomerDto;
 import com.bankingsystem.transaction.dto.DepositRequest;
 import com.bankingsystem.transaction.dto.TransactionDateRangeRequest;
 import com.bankingsystem.transaction.dto.TransactionResponse;
-
 import com.bankingsystem.transaction.dto.TransferRequest;
 import com.bankingsystem.transaction.dto.WithdrawRequest;
 import com.bankingsystem.transaction.entity.Transaction;
@@ -58,7 +57,7 @@ public class TransactionServiceImpl implements TransactionService {
             throw new IllegalArgumentException("Cannot deposit to an inactive account");
         }
 
-        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(account.getCustomerId());
+        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(account.getCustomerId()).block();
         if (customerResponse == null || !customerResponse.isSuccess() || customerResponse.getData() == null) {
             throw new IllegalArgumentException("Customer not found for id: " + account.getCustomerId());
         }
@@ -96,7 +95,7 @@ public class TransactionServiceImpl implements TransactionService {
         response.setMessage("Deposit successful");
 
         try {
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(customer.getId())
                     .customerEmail(customer.getEmail())
                     .title("Deposit Successful")
@@ -130,7 +129,7 @@ public class TransactionServiceImpl implements TransactionService {
             throw new IllegalArgumentException("Cannot deposit to an inactive account");
         }
 
-        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(account.getCustomerId());
+        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(account.getCustomerId()).block();
         if (customerResponse == null || !customerResponse.isSuccess() || customerResponse.getData() == null) {
             throw new IllegalArgumentException("Customer not found for id: " + account.getCustomerId());
         }
@@ -168,7 +167,7 @@ public class TransactionServiceImpl implements TransactionService {
         response.setMessage("Withdraw successful");
 
         try {
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(customer.getId())
                     .customerEmail(customer.getEmail())
                     .title("Withdrawal Successful")
@@ -224,14 +223,16 @@ public class TransactionServiceImpl implements TransactionService {
                     "Failed to update account balance for id: " + request.getFromAccountId());
         }
 
-        ApiResponse<CustomerDto> senderCustomerResponse = customerClient.getCustomerById(sender.getCustomerId());
+        ApiResponse<CustomerDto> senderCustomerResponse = customerClient.getCustomerById(sender.getCustomerId())
+                .block();
         if (senderCustomerResponse == null || !senderCustomerResponse.isSuccess()
                 || senderCustomerResponse.getData() == null) {
             throw new TransferException("Customer not found for id: " + sender.getCustomerId());
         }
         CustomerDto senderCustomer = senderCustomerResponse.getData();
 
-        ApiResponse<CustomerDto> receiverCustomerResponse = customerClient.getCustomerById(receiver.getCustomerId());
+        ApiResponse<CustomerDto> receiverCustomerResponse = customerClient.getCustomerById(receiver.getCustomerId())
+                .block();
         if (receiverCustomerResponse == null || !receiverCustomerResponse.isSuccess()
                 || receiverCustomerResponse.getData() == null) {
             throw new TransferException("Customer not found for id: " + receiver.getCustomerId());
@@ -251,7 +252,7 @@ public class TransactionServiceImpl implements TransactionService {
         response.setMessage("Transfer successful");
 
         try {
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(senderCustomer.getId())
                     .customerEmail(senderCustomer.getEmail())
                     .title("Transfer Successful")
@@ -260,7 +261,7 @@ public class TransactionServiceImpl implements TransactionService {
                             + " to account " + receiver.getAccountNumber() + " was successful.")
                     .build());
 
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(receiverCustomer.getId())
                     .customerEmail(receiverCustomer.getEmail())
                     .title("Received Transfer")

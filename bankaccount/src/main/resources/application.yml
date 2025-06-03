@@ -1,5 +1,6 @@
 server:
   port: 8082
+
 spring:
   application:
     name: bankaccount
@@ -23,3 +24,18 @@ eureka:
     fetch-registry: true
     register-with-eureka: true
     enabled: true
+
+logging:
+  level:
+    root: OFF # Disable all logs globally
+    org.springframework: ERROR # Only show errors from Spring
+    org.hibernate: ERROR # Only show errors from Hibernate
+    com.mohammedhany: DEBUG # Show all your logs from this package
+
+customer:
+  service:
+    url: http://localhost:8080/api/v1/customers
+
+notification:
+  service:
+    url: http://localhost:8086/api/v1/notifications

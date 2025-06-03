@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.bankingsystem.loan.client.AccountClient;
@@ -42,7 +41,7 @@ public class LoanServiceImpl implements LoanService {
     public LoanResponseDto applyLoan(LoanRequestDto loanRequest) {
         validateLoanRequest(loanRequest);
 
-        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(loanRequest.getCustomerId());
+        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(loanRequest.getCustomerId()).block();
         if (customerResponse == null || !customerResponse.isSuccess() || customerResponse.getData() == null) {
             throw new LoanValidationException("Customer not found with id: " + loanRequest.getCustomerId());
         }
@@ -197,8 +196,6 @@ public class LoanServiceImpl implements LoanService {
         LoanRepayment updatedRepayment = loanRepaymentRepo.save(repayment);
         return loanMapper.loanRepaymentToLoanRepaymentDto(updatedRepayment);
     }
-
-
 
     @Override
     public List<LoanResponseDto> getAllLoans() {

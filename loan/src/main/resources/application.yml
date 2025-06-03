@@ -22,3 +22,11 @@ eureka:
     fetch-registry: true
     register-with-eureka: true
     enabled: true
+
+account:
+  service:
+    url: http://localhost:8082/api/v1/bank-accounts
+
+customer:
+  service:
+    url: http://localhost:8081/api/v1/customers

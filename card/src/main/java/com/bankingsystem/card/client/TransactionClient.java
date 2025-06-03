@@ -1,14 +1,8 @@
 package com.bankingsystem.card.client;
 
-import java.math.BigDecimal;
-
-import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
 import com.bankingsystem.card.dto.TransactionResponse;
 import com.bankingsystem.card.dto.transactions.DepositRequest;
@@ -19,29 +13,48 @@ import com.bankingsystem.card.helper.ApiResponse;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
+
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 @Slf4j
 @RequiredArgsConstructor
 @Component
 public class TransactionClient {
 
-    private final RestTemplate restTemplate;
+    private final WebClient webClient;
 
-    private static final String TRANSACTION_SERVICE_URL = "http://localhost:8083/api/v1/transactions";
+    @Value("${transaction.service.url}")
+    private String transactionServiceUrl;
 
     public ApiResponse<TransactionResponse> deposit(DepositRequest depositRequest) {
         try {
+            return webClient.post()
+                    .uri(transactionServiceUrl + "/deposit")
+                    .bodyValue(depositRequest)
+                    .retrieve()
+                    .onStatus(status -> status.isError(),
+                            clientResponse -> clientResponse
+                                    .bodyToMono(String.class)
+                                    .defaultIfEmpty("No error body")
+                                    .flatMap(errorBody -> {
 
-            HttpEntity<DepositRequest> requestEntity = new HttpEntity<>(depositRequest);
+                                        log.error("Deposit failed with status {} and body {}",
+                                                clientResponse.statusCode(),
+                                                errorBody);
 
-            ResponseEntity<ApiResponse<TransactionResponse>> response = restTemplate.exchange(
-                    TRANSACTION_SERVICE_URL + "/deposit",
-                    HttpMethod.POST,
-                    requestEntity,
-                    new ParameterizedTypeReference<ApiResponse<TransactionResponse>>() {
-                    });
+                                        return Mono.error(new TransactionClientException(
+                                                "Deposit failed: " + clientResponse.statusCode()));
+                                    }))
+                    .bodyToMono(new ParameterizedTypeReference<ApiResponse<TransactionResponse>>() {
+                    })
+                    .block();
 
-            return response.getBody();
+        } catch (WebClientResponseException e) {
+            log.error("HTTP error during deposit: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString(),
+                    e);
+            throw new TransactionClientException("Failed to deposit amount: " + e.getMessage());
         } catch (Exception e) {
             log.error("Deposit failed for accountId={}, amount={}", depositRequest.getAccountId(),
                     depositRequest.getAmount(), e);
@@ -51,41 +64,58 @@ public class TransactionClient {
 
     public ApiResponse<TransactionResponse> withdraw(WithdrawRequest withdrawRequest) {
         try {
+            return webClient.post()
+                    .uri(transactionServiceUrl + "/withdraw")
+                    .bodyValue(withdrawRequest)
+                    .retrieve()
+                    .onStatus(status -> status.isError(), clientResponse -> clientResponse.bodyToMono(String.class)
+                            .defaultIfEmpty("No error body")
+                            .flatMap(errorBody -> {
+                                log.error("Withdraw failed with status {} and body {}", clientResponse.statusCode(),
+                                        errorBody);
+                                return Mono.error(new TransactionClientException(
+                                        "Withdraw failed: " + clientResponse.statusCode()));
+                            }))
+                    .bodyToMono(new ParameterizedTypeReference<ApiResponse<TransactionResponse>>() {
+                    })
+                    .block();
+        } catch (WebClientResponseException e) {
+            log.error("HTTP error during withdraw: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString(),
+                    e);
+            throw new TransactionClientException("Failed to withdraw amount: " + e.getMessage());
 
-            HttpEntity<WithdrawRequest> requestEntity = new HttpEntity<>(withdrawRequest);
-
-            ResponseEntity<ApiResponse<TransactionResponse>> response = restTemplate.exchange(
-                    TRANSACTION_SERVICE_URL + "/withdraw",
-                    HttpMethod.POST,
-                    requestEntity,
-                    new ParameterizedTypeReference<ApiResponse<TransactionResponse>>() {
-                    });
-
-            return response.getBody();
         } catch (Exception e) {
             log.error("Withdraw failed for accountId={}, amount={}", withdrawRequest.getAccountId(),
-                    withdrawRequest.getAccountId(), e);
+                    withdrawRequest.getAmount(), e);
             throw new TransactionClientException("Failed to withdraw amount: " + e.getMessage());
         }
     }
 
     public ApiResponse<TransactionResponse> transfer(TransferRequest transferRequest) {
         try {
-
-            HttpEntity<TransferRequest> requestEntity = new HttpEntity<>(transferRequest);
-
-            ResponseEntity<ApiResponse<TransactionResponse>> response = restTemplate.exchange(
-                    TRANSACTION_SERVICE_URL + "/transfer",
-                    HttpMethod.POST,
-                    requestEntity,
-                    new ParameterizedTypeReference<ApiResponse<TransactionResponse>>() {
-                    });
-
-            return response.getBody();
+            return webClient.post()
+                    .uri(transactionServiceUrl + "/transfer")
+                    .bodyValue(transferRequest)
+                    .retrieve()
+                    .onStatus(status -> status.isError(), clientResponse -> clientResponse.bodyToMono(String.class)
+                            .defaultIfEmpty("No error body")
+                            .flatMap(errorBody -> {
+                                log.error("Transfer failed with status {} and body {}", clientResponse.statusCode(),
+                                        errorBody);
+                                return Mono.error(new TransactionClientException(
+                                        "Transfer failed: " + clientResponse.statusCode()));
+                            }))
+                    .bodyToMono(new ParameterizedTypeReference<ApiResponse<TransactionResponse>>() {
+                    })
+                    .block();
+                    
+        } catch (WebClientResponseException e) {
+            log.error("HTTP error during transfer: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString(),
+                    e);
+            throw new TransactionClientException("Failed to transfer amount: " + e.getMessage());
         } catch (Exception e) {
             log.error("Transfer failed from accountId={} to accountId={} amount={}", transferRequest.getFromAccountId(),
-                    transferRequest.getToAccountId(), transferRequest.getAmount(),
-                    e);
+                    transferRequest.getToAccountId(), transferRequest.getAmount(), e);
             throw new TransactionClientException("Failed to transfer amount: " + e.getMessage());
         }
     }

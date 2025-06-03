@@ -17,7 +17,6 @@ import com.bankingsystem.card.dto.CreateNotificationDto;
 import com.bankingsystem.card.dto.TransactionResponse;
 import com.bankingsystem.card.dto.transactions.CustomerDto;
 import com.bankingsystem.card.dto.transactions.DepositRequest;
-import com.bankingsystem.card.dto.transactions.TransferRequest;
 import com.bankingsystem.card.dto.transactions.WithdrawRequest;
 import com.bankingsystem.card.entity.Card;
 import com.bankingsystem.card.entity.CardStatus;
@@ -26,8 +25,6 @@ import com.bankingsystem.card.exception.CardExpiredException;
 import com.bankingsystem.card.exception.CardNotActiveException;
 import com.bankingsystem.card.exception.CardNotFoundException;
 import com.bankingsystem.card.exception.InsufficientBalanceException;
-import com.bankingsystem.card.exception.SameAccountTransferException;
-import com.bankingsystem.card.exception.TransferFailedException;
 import com.bankingsystem.card.helper.ApiResponse;
 import com.bankingsystem.card.helper.CardMapper;
 import com.bankingsystem.card.helper.CardUtils;
@@ -62,7 +59,7 @@ public class CardServiceImpl implements CardService {
 
         BankAccountDto bankAccount = bankAccountResponse.getData();
 
-        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(bankAccount.getCustomerId());
+        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(bankAccount.getCustomerId()).block();
 
         if (customerResponse == null || customerResponse.getData() == null) {
             throw new BankAccountNotFoundException("Customer with ID " + bankAccount.getCustomerId() + " not found.");
@@ -80,7 +77,7 @@ public class CardServiceImpl implements CardService {
 
         try {
 
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(customer.getId())
                     .customerEmail(customer.getEmail())
                     .title("New Card Created")
@@ -119,12 +116,14 @@ public class CardServiceImpl implements CardService {
         card.setStatus(CardStatus.INACTIVE);
 
         cardRepo.save(card);
-        
+
         BankAccountDto bankAccount = accountClient.getAccountById(card.getAccountId()).getData();
 
-        CustomerDto customer = customerClient.getCustomerById(bankAccount.getCustomerId()).getData();
+        CustomerDto customer = customerClient.getCustomerById(bankAccount.getCustomerId())
+                .block()
+                .getData();
         try {
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(customer.getId())
                     .customerEmail(customer.getEmail())
                     .title("Card Deactivated")
@@ -133,7 +132,7 @@ public class CardServiceImpl implements CardService {
                             + card.getCardNumber() + " has been deactivated.")
                     .build());
         } catch (Exception e) {
-            log.error("Failed to send card deactivation notification for customer id:"+ customer.getId(), e);
+            log.error("Failed to send card deactivation notification for customer id:" + customer.getId(), e);
         }
     }
 
@@ -148,10 +147,12 @@ public class CardServiceImpl implements CardService {
 
         BankAccountDto bankAccount = accountClient.getAccountById(card.getAccountId()).getData();
 
-        CustomerDto customer = customerClient.getCustomerById(bankAccount.getCustomerId()).getData();
+        CustomerDto customer = customerClient.getCustomerById(bankAccount.getCustomerId())
+                .block()
+                .getData();
         try {
 
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(customer.getId())
                     .customerEmail(customer.getEmail())
                     .title("Card Blocked")
@@ -160,7 +161,7 @@ public class CardServiceImpl implements CardService {
                             + card.getCardNumber() + " has been blocked.")
                     .build());
         } catch (Exception e) {
-            log.error("Failed to send card block notification for customer id: "+ customer.getId(), e);
+            log.error("Failed to send card block notification for customer id: " + customer.getId(), e);
         }
 
     }
@@ -174,10 +175,12 @@ public class CardServiceImpl implements CardService {
 
         BankAccountDto bankAccount = accountClient.getAccountById(card.getAccountId()).getData();
 
-        CustomerDto customer = customerClient.getCustomerById(bankAccount.getCustomerId()).getData();
+        CustomerDto customer = customerClient.getCustomerById(bankAccount.getCustomerId())
+                .block()
+                .getData();
         try {
 
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(customer.getId())
                     .customerEmail(customer.getEmail())
                     .title("Card Deleted")
@@ -211,9 +214,11 @@ public class CardServiceImpl implements CardService {
         Card updatedCard = cardRepo.save(card);
         try {
             BankAccountDto bankAccount = accountClient.getAccountById(card.getAccountId()).getData();
-            CustomerDto customer = customerClient.getCustomerById(bankAccount.getCustomerId()).getData();
+            CustomerDto customer = customerClient.getCustomerById(bankAccount.getCustomerId())
+                    .block()
+                    .getData();
 
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(customer.getId())
                     .customerEmail(customer.getEmail())
                     .title("Card Status Updated")
@@ -245,9 +250,12 @@ public class CardServiceImpl implements CardService {
 
         BankAccountDto bankAccount = accountClient.getAccountById(oldCard.getAccountId()).getData();
 
-        CustomerDto customer = customerClient.getCustomerById(bankAccount.getCustomerId()).getData();
+        CustomerDto customer = customerClient.getCustomerById(bankAccount.getCustomerId())
+                .block()
+                .getData();
+
         try {
-            notificationClient.sendNotification(CreateNotificationDto.builder()
+            notificationClient.sendNotificationAsync(CreateNotificationDto.builder()
                     .customerId(customer.getId())
                     .customerEmail(customer.getEmail())
                     .title("Card Regenerated")
@@ -307,7 +315,6 @@ public class CardServiceImpl implements CardService {
             throw new IllegalStateException("Failed to withdraw amount for cardId " + cardId);
         }
 
-       
         return withdrawResponse.getData();
     }
 
@@ -340,52 +347,6 @@ public class CardServiceImpl implements CardService {
             throw new IllegalStateException("Failed to deposit amount.");
         }
 
-       
-
         return depositResponse.getData();
     }
-
-    // @Override
-    // public TransactionResponse transferUsingCard(Long cardId, TransferRequest request) {
-    //     Card card = cardRepo.findById(cardId)
-    //             .orElseThrow(() -> new CardNotFoundException("Card with ID " + cardId + " not found."));
-
-    //     if (card.getStatus() != CardStatus.ACTIVE) {
-    //         throw new CardNotActiveException("Card is not active.");
-    //     }
-
-    //     if (card.getExpiryDate() != null && card.getExpiryDate().isBefore(LocalDate.now())) {
-    //         throw new CardExpiredException("Card is expired.");
-    //     }
-
-    //     ApiResponse<BankAccountDto> senderAccountResponse = accountClient.getAccountById(card.getAccountId());
-    //     if (senderAccountResponse == null || senderAccountResponse.getData() == null) {
-    //         throw new BankAccountNotFoundException("Sender bank account not found.");
-    //     }
-    //     BankAccountDto senderAccount = senderAccountResponse.getData();
-
-    //     BigDecimal amount = request.getAmount();
-    //     if (senderAccount.getBalance().compareTo(amount) < 0) {
-    //         throw new InsufficientBalanceException("Insufficient balance.");
-    //     }
-
-    //     ApiResponse<BankAccountDto> receiverAccountResponse = accountClient
-    //             .getAccountById(request.getToAccountId());
-    //     if (receiverAccountResponse == null || receiverAccountResponse.getData() == null) {
-    //         throw new BankAccountNotFoundException("Receiver bank account not found.");
-    //     }
-
-    //     if (senderAccount.getId().equals(request.getToAccountId())) {
-    //         throw new SameAccountTransferException("Sender and receiver accounts cannot be the same.");
-    //     }
-
-    //     ApiResponse<TransactionResponse> transferResponse = transactionClient.transfer(request);
-
-    //     if (transferResponse == null || !transferResponse.isSuccess()) {
-    //         throw new TransferFailedException("Failed to transfer amount.");
-    //     }
-
-    //     return transferResponse.getData();
-    // }
-
 }

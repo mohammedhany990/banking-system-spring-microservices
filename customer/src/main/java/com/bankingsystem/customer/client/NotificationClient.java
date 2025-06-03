@@ -1,5 +1,6 @@
 package com.bankingsystem.customer.client;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -7,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import com.bankingsystem.customer.dto.CreateNotificationDto;
 import com.bankingsystem.customer.dto.CustomerDto;
@@ -19,19 +21,31 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationClient {
-    private final RestTemplate restTemplate;
 
-    private final String NOTIFICATION_SERVICE_URL = "http://localhost:8086/api/v1/notifications";
+    private final WebClient webClient;
+
+    @Value("${notification.service.url}")
+    private String notificationServiceUrl;
 
     public void sendNotification(CreateNotificationDto dto) {
         try {
-            HttpEntity<CreateNotificationDto> requestEntity = new HttpEntity<>(dto);
 
-            restTemplate.exchange(
-                    NOTIFICATION_SERVICE_URL,
-                    HttpMethod.POST,
-                    requestEntity,
-                    Void.class);
+            log.info("Calling notification service to send notification: {}", dto);
+
+            webClient.post()
+                    .uri(notificationServiceUrl)
+                    .bodyValue(dto)
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .block();
+
+            // HttpEntity<CreateNotificationDto> requestEntity = new HttpEntity<>(dto);
+
+            // restTemplate.exchange(
+            // NOTIFICATION_SERVICE_URL,
+            // HttpMethod.POST,
+            // requestEntity,
+            // Void.class);
 
             log.info("Notification sent successfully.");
 
