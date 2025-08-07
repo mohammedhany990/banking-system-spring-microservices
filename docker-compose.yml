@@ -16,6 +16,31 @@ services:
       - spring
     restart: unless-stopped
 
+  discovery-service:
+    image: discovery-service
+    container_name: discovery-service
+    build:
+      context: ./eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - bank-network
+
+  gateway-service:
+    image: gateway-service
+    container_name: gateway-service
+    build:
+      context: ./api-gateway
+    ports:
+      - "8888:8888"
+    environment:
+      - DISCOVERY_SERVICE=http://discovery-service:8761/eureka/
+      - ALLOWED_ORIGINS=http://localhost:4200
+    depends_on:
+      - discovery-service
+    networks:
+      - bank-network
+
   pgadmin:
     container_name: pgadmin
     image: dpage/pgadmin4
@@ -118,6 +143,8 @@ services:
       - postgres
 
 networks:
+  bank-network:
+    external: true
   spring:
     driver: bridge
 

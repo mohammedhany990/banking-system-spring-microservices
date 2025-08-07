@@ -2,6 +2,7 @@ package com.bankingsystem.card.controller;
 
 import java.util.List;
 
+import com.bankingsystem.card.service.CardService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,10 +19,8 @@ import com.bankingsystem.card.dto.CardRequestDto;
 import com.bankingsystem.card.dto.CardResponse;
 import com.bankingsystem.card.dto.TransactionResponse;
 import com.bankingsystem.card.dto.transactions.DepositRequest;
-import com.bankingsystem.card.dto.transactions.TransferRequest;
 import com.bankingsystem.card.dto.transactions.WithdrawRequest;
 import com.bankingsystem.card.helper.ApiResponse;
-import com.bankingsystem.card.service.CardService;
 
 import lombok.RequiredArgsConstructor;
 

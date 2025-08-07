@@ -1,20 +1,25 @@
 package com.bankingsystem.bankaccount.client;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import com.bankingsystem.bankaccount.dto.CustomerDto;
 import com.bankingsystem.bankaccount.helper.ApiResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
-@RequiredArgsConstructor
-@Component
-@Slf4j
+@FeignClient(value = "customer-service", fallback = CustomerClientFallback.class)
+public interface CustomerClient {
+
+    @GetMapping("/api/v1/customers/{id}")
+    ApiResponse<CustomerDto> getCustomerById(@PathVariable Long id);
+
+
+    @GetMapping("/api/v1/customers/username/{username}")
+    ApiResponse<CustomerDto> getCustomerByUsername(@PathVariable String username);
+
+}
+
+/*
+
 public class CustomerClient {
 
     private final WebClient webClient;
@@ -23,6 +28,7 @@ public class CustomerClient {
     private final String customerServiceUrl;
 
     public Mono<ApiResponse<CustomerDto>> getCustomerById(Long customerId) {
+
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder.path(customerServiceUrl + "/{id}").build(customerId))
                 .retrieve()
@@ -57,3 +63,5 @@ public class CustomerClient {
     }
 
 }
+
+ */

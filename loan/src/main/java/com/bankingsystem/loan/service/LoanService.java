@@ -27,7 +27,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Service
-public class LoanServiceImpl implements LoanService {
+public class LoanService  {
 
     private final LoanRepo loanRepo;
 
@@ -37,11 +37,10 @@ public class LoanServiceImpl implements LoanService {
     private final CustomerClient customerClient;
     private final LoanMapper loanMapper;
 
-    @Override
     public LoanResponseDto applyLoan(LoanRequestDto loanRequest) {
         validateLoanRequest(loanRequest);
 
-        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(loanRequest.getCustomerId()).block();
+        ApiResponse<CustomerDto> customerResponse = customerClient.getCustomerById(loanRequest.getCustomerId());
         if (customerResponse == null || !customerResponse.isSuccess() || customerResponse.getData() == null) {
             throw new LoanValidationException("Customer not found with id: " + loanRequest.getCustomerId());
         }
@@ -78,14 +77,12 @@ public class LoanServiceImpl implements LoanService {
         }
     }
 
-    @Override
     public LoanResponseDto getLoanById(Long loanId) {
         Loan loan = loanRepo.findById(loanId)
                 .orElseThrow(() -> new LoanValidationException("Loan not found with id: " + loanId));
         return loanMapper.loanToLoanResponseDto(loan);
     }
 
-    @Override
     public List<LoanResponseDto> getLoansByCustomerId(Long customerId) {
         List<Loan> loans = loanRepo.findByCustomerId(customerId);
         if (loans.isEmpty()) {
@@ -94,7 +91,6 @@ public class LoanServiceImpl implements LoanService {
         return loanMapper.loansToLoanResponseDtos(loans);
     }
 
-    @Override
     public LoanResponseDto approveLoan(Long loanId) {
         Loan loan = loanRepo.findById(loanId)
                 .orElseThrow(() -> new LoanValidationException("Loan not found with id: " + loanId));
@@ -109,7 +105,6 @@ public class LoanServiceImpl implements LoanService {
         return loanMapper.loanToLoanResponseDto(updatedLoan);
     }
 
-    @Override
     public LoanResponseDto rejectLoan(Long loanId) {
         Loan loan = loanRepo.findById(loanId)
                 .orElseThrow(() -> new LoanValidationException("Loan not found with id: " + loanId));
@@ -124,7 +119,6 @@ public class LoanServiceImpl implements LoanService {
         return loanMapper.loanToLoanResponseDto(updatedLoan);
     }
 
-    @Override
     public LoanResponseDto markLoanAsPaid(Long loanId) {
         Loan loan = loanRepo.findById(loanId)
                 .orElseThrow(() -> new LoanValidationException("Loan not found with id: " + loanId));
@@ -139,7 +133,6 @@ public class LoanServiceImpl implements LoanService {
         return loanMapper.loanToLoanResponseDto(updatedLoan);
     }
 
-    @Override
     public LoanRepaymentDto makeRepayment(LoanRepaymentDto repaymentRequest) {
 
         if (repaymentRequest.getLoanId() == null || repaymentRequest.getAmount() == null
@@ -157,7 +150,6 @@ public class LoanServiceImpl implements LoanService {
                     "Loan with id " + repaymentRequest.getLoanId() + " is not in a valid state for repayments");
         }
 
-        // Map DTO to entity
         LoanRepayment repayment = loanMapper.loanRepaymentDtoToLoanRepayment(repaymentRequest);
 
         // Set loanId explicitly (since no relation)
@@ -171,7 +163,6 @@ public class LoanServiceImpl implements LoanService {
         return loanMapper.loanRepaymentToLoanRepaymentDto(savedRepayment);
     }
 
-    @Override
     public List<LoanRepaymentDto> getRepaymentsByLoanId(Long loanId) {
         List<LoanRepayment> repayments = loanRepaymentRepo.findByLoanId(loanId);
         if (repayments.isEmpty()) {
@@ -182,7 +173,6 @@ public class LoanServiceImpl implements LoanService {
                 .toList();
     }
 
-    @Override
     public LoanRepaymentDto markRepaymentAsPaid(Long repaymentId) {
 
         LoanRepayment repayment = loanRepaymentRepo.findById(repaymentId)
@@ -197,7 +187,6 @@ public class LoanServiceImpl implements LoanService {
         return loanMapper.loanRepaymentToLoanRepaymentDto(updatedRepayment);
     }
 
-    @Override
     public List<LoanResponseDto> getAllLoans() {
         List<Loan> loans = loanRepo.findAll();
         if (loans.isEmpty()) {
@@ -206,7 +195,6 @@ public class LoanServiceImpl implements LoanService {
         return loanMapper.loansToLoanResponseDtos(loans);
     }
 
-    @Override
     public LoanResponseDto cancelLoan(Long loanId) {
         Loan loan = loanRepo.findById(loanId)
                 .orElseThrow(() -> new LoanValidationException("Loan not found with id: " + loanId));
@@ -221,7 +209,6 @@ public class LoanServiceImpl implements LoanService {
         return loanMapper.loanToLoanResponseDto(updatedLoan);
     }
 
-    @Override
     public List<RepaymentScheduleDto> getRepaymentSchedule(Long loanId) {
         Loan loan = loanRepo.findById(loanId)
                 .orElseThrow(() -> new LoanValidationException("Loan not found with id: " + loanId));
@@ -234,7 +221,6 @@ public class LoanServiceImpl implements LoanService {
         return loanMapper.loanRepaymentsToRepaymentScheduleDtos(repayments);
     }
 
-    @Override
     public List<LoanResponseDto> getLoansByStatus(String status) {
         LoanStatus loanStatus;
         try {

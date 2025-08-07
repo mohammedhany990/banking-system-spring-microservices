@@ -2,12 +2,12 @@ server:
   port: 8086
 spring:
   application:
-    name: notification
+    name: notification-service
 
   datasource:
-    password: 1234
+    username: postgres
+    password: root
     url: jdbc:postgresql://localhost:5432/notification
-    username: mohamed
 
   jpa:
     hibernate:

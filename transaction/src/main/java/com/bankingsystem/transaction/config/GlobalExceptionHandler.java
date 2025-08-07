@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import com.bankingsystem.transaction.exception.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -14,8 +15,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import com.bankingsystem.transaction.exception.TransactionNotFoundException;
-import com.bankingsystem.transaction.exception.InvalidTransactionException;
 import com.bankingsystem.transaction.helper.ApiResponse;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
@@ -34,7 +33,6 @@ public class GlobalExceptionHandler {
             new ApiResponse<>(false, "An unexpected error occurred.", null),
             HttpStatus.INTERNAL_SERVER_ERROR);
 
-    // 404 Not Found - Transaction
     @ExceptionHandler(TransactionNotFoundException.class)
     public ResponseEntity<ApiResponse<String>> handleTransactionNotFound(TransactionNotFoundException ex) {
         ApiResponse<String> response = ApiResponse.<String>builder()
@@ -45,7 +43,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
-    // 400 Bad Request - Invalid Transaction
     @ExceptionHandler(InvalidTransactionException.class)
     public ResponseEntity<ApiResponse<Void>> handleInvalidTransaction(InvalidTransactionException ex) {
         if (log.isWarnEnabled()) {
@@ -58,7 +55,6 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
-    // 405 Method Not Allowed (using cached response)
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<?>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
         if (log.isWarnEnabled()) {
@@ -67,7 +63,15 @@ public class GlobalExceptionHandler {
         return METHOD_NOT_ALLOWED_RESPONSE;
     }
 
-    // 400 Malformed JSON - detailed error handling
+    @ExceptionHandler(TransferException.class)
+    public ResponseEntity<String> handleTransferException(TransferException ex) {
+        log.error("Transfer exception occurred: {}", ex.getMessage(), ex);
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body("Transfer failed: " + ex.getMessage());
+    }
+
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<?>> handleMalformedJson(HttpMessageNotReadableException ex) {
         String message = "Invalid JSON request format";
@@ -117,12 +121,7 @@ public class GlobalExceptionHandler {
                 .body(new ApiResponse<>(false, message, details.isEmpty() ? null : details));
     }
 
-    // 500 Internal Server Error - fallback handler
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<?>> handleAllUnhandledExceptions(Exception ex) {
-        log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
-        return INTERNAL_ERROR_RESPONSE;
-    }
+
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(
@@ -142,6 +141,26 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(AccountNotFoundException.class)
+    public ResponseEntity<String> handleAccountNotFound(AccountNotFoundException ex) {
+        log.warn("Account not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+
+
+    @ExceptionHandler(NotificationClientException.class)
+    public ResponseEntity<String> handleNotificationClient(NotificationClientException ex) {
+        log.error("Notification client failed: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Failed to send notification: " + ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleOtherExceptions(Exception ex) {
+        log.error("Unhandled exception: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong.");
     }
 
 }

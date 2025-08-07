@@ -1,9 +1,10 @@
-package com.bankingsystem.card.client;
+package com.bankingsystem.transaction.client;
 
 
-import com.bankingsystem.card.client.fallback.NotificationClientFallback;
-import com.bankingsystem.card.dto.CreateNotificationDto;
-import com.bankingsystem.card.helper.ApiResponse;
+
+import com.bankingsystem.transaction.client.fallback.NotificationClientFallback;
+import com.bankingsystem.transaction.dto.CreateNotificationDto;
+import com.bankingsystem.transaction.helper.ApiResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

@@ -2,6 +2,7 @@ package com.bankingsystem.customer.controller;
 
 import java.util.List;
 
+import com.bankingsystem.customer.service.CustomerService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.bankingsystem.customer.dto.CustomerDto;
 import com.bankingsystem.customer.helper.ApiResponse;
-import com.bankingsystem.customer.service.CustomerService;
 
 import lombok.RequiredArgsConstructor;
 

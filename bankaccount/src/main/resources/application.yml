@@ -3,11 +3,11 @@ server:
 
 spring:
   application:
-    name: bankaccount
+    name: bank-account-service
   datasource:
-    password: 1234
+    username: postgres
+    password: root
     url: jdbc:postgresql://localhost:5432/bankaccount
-    username: mohamed
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -25,17 +25,17 @@ eureka:
     register-with-eureka: true
     enabled: true
 
-logging:
-  level:
-    root: OFF # Disable all logs globally
-    org.springframework: ERROR # Only show errors from Spring
-    org.hibernate: ERROR # Only show errors from Hibernate
-    com.mohammedhany: DEBUG # Show all your logs from this package
+#logging:
+#  level:
+#    root: OFF # Disable all logs globally
+#    org.springframework: ERROR # Only show errors from Spring
+#    org.hibernate: ERROR # Only show errors from Hibernate
+#    com.mohammedhany: DEBUG # Show all your logs from this package
 
-customer:
-  service:
-    url: http://localhost:8080/api/v1/customers
-
-notification:
-  service:
-    url: http://localhost:8086/api/v1/notifications
+#customer:
+#  service:
+#    url: http://localhost:8080/api/v1/customers
+#
+#notification:
+#  service:
+#    url: http://localhost:8086/api/v1/notifications

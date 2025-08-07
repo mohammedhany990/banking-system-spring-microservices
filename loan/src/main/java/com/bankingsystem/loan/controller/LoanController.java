@@ -2,6 +2,7 @@ package com.bankingsystem.loan.controller;
 
 import java.util.List;
 
+import com.bankingsystem.loan.service.LoanService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,7 +11,6 @@ import com.bankingsystem.loan.dto.LoanRepaymentDto;
 import com.bankingsystem.loan.dto.LoanRequestDto;
 import com.bankingsystem.loan.dto.LoanResponseDto;
 import com.bankingsystem.loan.dto.RepaymentScheduleDto;
-import com.bankingsystem.loan.service.LoanService;
 
 import lombok.RequiredArgsConstructor;
 

@@ -20,13 +20,12 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class NotificationServiceImpl implements NotificationService {
+public class NotificationService {
 
     private final NotificationRepo notificationRepo;
     private final NotificationMapper notificationMapper;
     private final NotificationPublisher notificationPublisher;
 
-    @Override
     public NotificationDto createNotification(CreateNotificationDto dto) {
         Notification notification = notificationMapper.toEntity(dto);
 
@@ -72,7 +71,6 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
-    @Override
     public List<NotificationDto> getNotificationsByCustomerId(Long customerId) {
         if (customerId == null) {
             throw new InvalidNotificationException("Customer ID must not be null");
@@ -82,7 +80,6 @@ public class NotificationServiceImpl implements NotificationService {
         return notificationMapper.toDtoList(notifications);
     }
 
-    @Override
     public NotificationDto markAsRead(UUID notificationId, boolean isRead) {
         if (notificationId == null) {
             throw new InvalidNotificationException("Notification ID must not be null");

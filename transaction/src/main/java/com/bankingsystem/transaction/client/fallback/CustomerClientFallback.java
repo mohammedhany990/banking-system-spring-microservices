@@ -1,9 +1,10 @@
-package com.bankingsystem.card.client.fallback;
+package com.bankingsystem.transaction.client.fallback;
 
 
-import com.bankingsystem.card.client.CustomerClient;
-import com.bankingsystem.card.dto.transactions.CustomerDto;
-import com.bankingsystem.card.helper.ApiResponse;
+
+import com.bankingsystem.transaction.client.CustomerClient;
+import com.bankingsystem.transaction.dto.CustomerDto;
+import com.bankingsystem.transaction.helper.ApiResponse;
 import org.springframework.stereotype.Component;
 
 @Component

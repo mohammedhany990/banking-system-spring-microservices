@@ -24,7 +24,7 @@
 		<module>card</module>
 		<module>notification</module>
 		<module>eureka-server</module>
-		<module>apigateway</module>
+		<module>api-gateway</module>
 	</modules>
 
 
@@ -85,18 +85,7 @@
 	<dependencies>
 
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<scope>runtime</scope>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<optional>true</optional>
-			<scope>provided</scope>
-		</dependency>
+
 
 		<dependency>
 			<groupId>jakarta.validation</groupId>

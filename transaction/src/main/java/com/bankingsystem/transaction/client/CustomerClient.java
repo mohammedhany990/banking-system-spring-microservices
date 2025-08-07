@@ -1,9 +1,10 @@
-package com.bankingsystem.card.client;
+package com.bankingsystem.transaction.client;
 
 
-import com.bankingsystem.card.client.fallback.CustomerClientFallback;
-import com.bankingsystem.card.dto.transactions.CustomerDto;
-import com.bankingsystem.card.helper.ApiResponse;
+
+import com.bankingsystem.transaction.client.fallback.CustomerClientFallback;
+import com.bankingsystem.transaction.dto.CustomerDto;
+import com.bankingsystem.transaction.helper.ApiResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

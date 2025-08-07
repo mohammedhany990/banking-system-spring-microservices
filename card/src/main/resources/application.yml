@@ -2,19 +2,20 @@ server:
   port: 8085
 spring:
   application:
-    name: card
+    name: card-service
   datasource:
-    password: 1234
+    username: postgres
+    password: root
     url: jdbc:postgresql://localhost:5432/card
-    username: mohamed
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
     show-sql: true
+
 eureka:
   client:
     service-url:
@@ -23,18 +24,3 @@ eureka:
     register-with-eureka: true
     enabled: true
 
-customer:
-  service:
-    url: http://localhost:8080/api/v1/customers
-
-notification:
-  service:
-    url: http://localhost:8086/api/v1/notifications
-
-transaction:
-  service:
-    url: http://localhost:8083/api/v1/transactions
-
-account:
-  service:
-    url: http://localhost:8082/api/v1/bank-accounts

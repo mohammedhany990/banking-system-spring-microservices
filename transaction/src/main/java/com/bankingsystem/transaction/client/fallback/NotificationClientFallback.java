@@ -1,9 +1,9 @@
-package com.bankingsystem.card.client.fallback;
+package com.bankingsystem.transaction.client.fallback;
 
 
-import com.bankingsystem.card.dto.CreateNotificationDto;
-import com.bankingsystem.card.client.NotificationClient;
-import com.bankingsystem.card.helper.ApiResponse;
+import com.bankingsystem.transaction.client.NotificationClient;
+import com.bankingsystem.transaction.dto.CreateNotificationDto;
+import com.bankingsystem.transaction.helper.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

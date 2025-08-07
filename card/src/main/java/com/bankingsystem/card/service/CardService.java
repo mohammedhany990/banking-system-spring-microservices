@@ -38,7 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Transactional
 @Slf4j
-public class CardServiceImpl implements CardService {
+public class CardService {
 
     private final CardRepo cardRepo;
     private final AccountClient accountClient;
@@ -47,7 +47,7 @@ public class CardServiceImpl implements CardService {
     private final TransactionClient transactionClient;
     private final NotificationClient notificationClient;
 
-    @Override
+
     public CardResponse createCard(CardRequestDto cardRequestDto) {
 
         ApiResponse<BankAccountDto> bankAccountResponse = accountClient.getAccountById(cardRequestDto.getAccountId());
@@ -92,7 +92,6 @@ public class CardServiceImpl implements CardService {
         return cardMapper.toCardResponse(savedCard);
     }
 
-    @Override
     public CardResponse getCardById(Long cardId) {
 
         return cardRepo.findById(cardId)
@@ -101,13 +100,11 @@ public class CardServiceImpl implements CardService {
 
     }
 
-    @Override
     public List<CardResponse> getCardsByAccountId(Long accountId) {
         List<Card> cards = cardRepo.findByAccountId(accountId);
         return cardMapper.toCardResponseList(cards);
     }
 
-    @Override
     public void deactivateCard(Long cardId) {
 
         Card card = cardRepo.findById(cardId)
@@ -135,7 +132,6 @@ public class CardServiceImpl implements CardService {
         }
     }
 
-    @Override
     public void blockCard(Long cardId) {
         Card card = cardRepo.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException("Card with ID " + cardId + " not found."));
@@ -164,7 +160,6 @@ public class CardServiceImpl implements CardService {
 
     }
 
-    @Override
     public void deleteCard(Long cardId) {
         Card card = cardRepo.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException("Card with ID " + cardId + " not found."));
@@ -190,12 +185,10 @@ public class CardServiceImpl implements CardService {
         }
     }
 
-    @Override
     public boolean validateCardNumber(String cardNumber) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-    @Override
     public CardResponse updateCardStatus(Long cardId, String status) {
         Card card = cardRepo.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException("Card with ID " + cardId + " not found."));
@@ -228,7 +221,6 @@ public class CardServiceImpl implements CardService {
         return cardMapper.toCardResponse(updatedCard);
     }
 
-    @Override
     public CardResponse regenerateCard(Long oldCardId) {
 
         Card oldCard = cardRepo.findById(oldCardId)
@@ -265,7 +257,6 @@ public class CardServiceImpl implements CardService {
         return cardMapper.toCardResponse(savedNewCard);
     }
 
-    @Override
     public boolean isCardExpired(Long cardId) {
         Card card = cardRepo.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException("Card with ID " + cardId + " not found."));
@@ -275,7 +266,6 @@ public class CardServiceImpl implements CardService {
                 && (card.getExpiryDate().isBefore(today) || card.getExpiryDate().isEqual(today));
     }
 
-    @Override
     public TransactionResponse withdrawUsingCard(Long cardId, WithdrawRequest request) {
         Card card = cardRepo.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException("Card with ID " + cardId + " not found."));
@@ -313,7 +303,6 @@ public class CardServiceImpl implements CardService {
         return withdrawResponse.getData();
     }
 
-    @Override
     public TransactionResponse depositUsingCard(Long cardId, DepositRequest request) {
         Card card = cardRepo.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException("Card with ID " + cardId + " not found."));

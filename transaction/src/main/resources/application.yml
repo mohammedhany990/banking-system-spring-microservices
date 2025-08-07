@@ -2,14 +2,14 @@ server:
   port: 8083
 spring:
   application:
-    name: transaction
+    name: transaction-service
   datasource:
-    password: 1234
-    url: jdbc:postgresql://localhost:5432/bankaccount
-    username: mohamed
+    username: postgres
+    password: root
+    url: jdbc:postgresql://localhost:5432/transaction
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -23,19 +23,3 @@ eureka:
     fetch-registry: true
     register-with-eureka: true
     enabled: true
-
-customer:
-  service:
-    url: http://localhost:8080/api/v1/customers
-
-notification:
-  service:
-    url: http://localhost:8086/api/v1/notifications
-
-transaction:
-  service:
-    url: http://localhost:8083/api/v1/transactions
-
-account:
-  service:
-    url: http://localhost:8082/api/v1/bank-accounts

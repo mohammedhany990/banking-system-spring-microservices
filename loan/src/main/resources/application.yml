@@ -2,14 +2,14 @@ server:
   port: 8084
 spring:
   application:
-    name: loan
+    name: loan-service
   datasource:
-    password: 1234
+    username: postgres
+    password: root
     url: jdbc:postgresql://localhost:5432/loan
-    username: mohamed
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -22,11 +22,3 @@ eureka:
     fetch-registry: true
     register-with-eureka: true
     enabled: true
-
-account:
-  service:
-    url: http://localhost:8082/api/v1/bank-accounts
-
-customer:
-  service:
-    url: http://localhost:8081/api/v1/customers
